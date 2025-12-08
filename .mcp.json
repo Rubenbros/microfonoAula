@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "// INSTRUCCIONES": {
+      "// 1": "Descomenta los servidores que necesites",
+      "// 2": "Configura las variables de entorno necesarias",
+      "// 3": "Ejecuta 'claude mcp list' para verificar"
+    }
+  }
+}

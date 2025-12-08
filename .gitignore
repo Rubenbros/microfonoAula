@@ -1,0 +1,46 @@
+# Claude Code local files (personal settings, not shared)
+.claude/settings.local.json
+CLAUDE.local.md
+.claude.json
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Secrets
+secrets/
+**/credentials*
+**/*secret*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+vendor/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+target/
+*.jar
+*.war
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+.nyc_output/
