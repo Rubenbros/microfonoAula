@@ -1,0 +1,360 @@
+{
+  "sitio": {
+    "nombre": "Autoescuela Monreal",
+    "slogan": "Todos los permisos de conducir en Zaragoza",
+    "descripcion": "Tu autoescuela de confianza en Zaragoza. Formamos conductores desde hace años con los mejores profesionales y las mejores instalaciones.",
+    "telefono": "976 251 719",
+    "email": "autoescuelamonreal@gmail.com",
+    "horario": "Lunes a Viernes: 09:30 - 13:30 y 16:30 - 20:30",
+    "redesSociales": {
+      "facebook": "https://www.facebook.com/autoescuelasmonreal",
+      "instagram": "https://www.instagram.com/autoescuelamonreal/"
+    }
+  },
+  "sedes": [
+    {
+      "id": "la-paz",
+      "nombre": "Autoescuela Monreal La Paz",
+      "direccion": "C. de Faustino Casamayor, 2, Torrero-La Paz, 50007 Zaragoza",
+      "telefono": "976 251 719",
+      "whatsapp": "619 727 274",
+      "horario": "Lunes a Jueves: 09:30-13:30 y 16:30-20:30 | Viernes: 09:30-13:30 y 16:30-20:00",
+      "imagen": "/images/sedes/la-paz.jpg",
+      "googleMaps": "https://maps.google.com/maps?q=Autoescuela+Monreal-la+Paz+Zaragoza",
+      "googleMapsEmbed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2982.2998922952656!2d-0.879478!3d41.62764879999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd59151080606cbb%3A0x7a2a2429c661a798!2sAutoescuela%20Monreal-la%20Paz!5e0!3m2!1ses!2ses"
+    },
+    {
+      "id": "rosales",
+      "nombre": "Autoescuela Monreal Rosales",
+      "direccion": "C. de Felix Mendelssohn, 29, Casablanca, 50012 Zaragoza",
+      "telefono": "976 565 853",
+      "whatsapp": "658 893 314",
+      "horario": "Lunes a Viernes: 10:30-13:30 y 16:30-20:30",
+      "imagen": "/images/sedes/rosales.jpg",
+      "googleMaps": "https://maps.google.com/maps?q=Autoescuela+Monreal+Rosales+Zaragoza",
+      "googleMapsEmbed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2982.007127033049!2d-0.9496183242733842!3d41.633977380664156!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd5914d04ec401fb%3A0xa744cb3ec135277f!2sAutoescuela%20Monreal%20Rosales!5e0!3m2!1ses!2ses"
+    }
+  ],
+  "permisos": [
+    {
+      "id": "am",
+      "nombre": "Permiso AM",
+      "categoria": "motos",
+      "subtitulo": "Ciclomotores",
+      "descripcion": "Permiso para conducir ciclomotores de dos o tres ruedas y cuadriciclos ligeros con velocidad máxima de 45 km/h.",
+      "edad": "15 años",
+      "imagen": "/images/permisos/am.jpg",
+      "requisitos": [
+        "Tener 15 años cumplidos",
+        "Superar prueba teórica específica",
+        "Superar prueba práctica en circuito cerrado"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "a1",
+      "nombre": "Permiso A1",
+      "categoria": "motos",
+      "subtitulo": "Motocicletas hasta 125cc",
+      "descripcion": "Permiso para conducir motocicletas con una cilindrada máxima de 125 cc, potencia máxima de 11 kW y relación potencia/peso máxima de 0,1 kW/kg.",
+      "edad": "16 años",
+      "imagen": "/images/permisos/a1.jpg",
+      "requisitos": [
+        "Tener 16 años cumplidos",
+        "Superar prueba teórica común",
+        "Superar prueba práctica de maniobras y circulación"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "a2",
+      "nombre": "Permiso A2",
+      "categoria": "motos",
+      "subtitulo": "Motocicletas hasta 35kW",
+      "descripcion": "Permiso para conducir motocicletas con una potencia máxima de 35 kW y relación potencia/peso máxima de 0,2 kW/kg.",
+      "edad": "18 años",
+      "imagen": "/images/permisos/a2.jpg",
+      "requisitos": [
+        "Tener 18 años cumplidos",
+        "Superar prueba teórica común (si no se posee otro permiso)",
+        "Superar prueba práctica de maniobras y circulación"
+      ],
+      "destacado": true
+    },
+    {
+      "id": "a",
+      "nombre": "Permiso A",
+      "categoria": "motos",
+      "subtitulo": "Todas las motocicletas",
+      "descripcion": "Permiso para conducir cualquier motocicleta sin límite de potencia, triciclos de motor de más de 15 kW.",
+      "edad": "20 años (con A2) / 21 años (acceso directo triciclos)",
+      "imagen": "/images/permisos/a.jpg",
+      "requisitos": [
+        "Tener 20 años y 2 años de experiencia con A2",
+        "O tener 21 años para triciclos de más de 15 kW",
+        "Superar prueba práctica"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "b",
+      "nombre": "Permiso B",
+      "categoria": "coches",
+      "subtitulo": "Turismos",
+      "descripcion": "Permiso para conducir automóviles con masa máxima autorizada de hasta 3.500 kg y hasta 9 plazas incluido el conductor.",
+      "edad": "18 años",
+      "imagen": "/images/permisos/b.jpg",
+      "requisitos": [
+        "Tener 18 años cumplidos",
+        "Superar prueba teórica común",
+        "Superar prueba práctica de circulación en vías abiertas"
+      ],
+      "destacado": true
+    },
+    {
+      "id": "be",
+      "nombre": "Permiso B+E",
+      "categoria": "coches",
+      "subtitulo": "Coche con remolque",
+      "descripcion": "Permiso para conducir conjuntos de vehículos formados por un vehículo del permiso B y un remolque de más de 750 kg.",
+      "edad": "18 años",
+      "imagen": "/images/permisos/be.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso B",
+        "Superar prueba práctica específica con remolque"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "c1",
+      "nombre": "Permiso C1",
+      "categoria": "camiones",
+      "subtitulo": "Camiones medianos",
+      "descripcion": "Permiso para conducir vehículos con masa máxima autorizada superior a 3.500 kg y hasta 7.500 kg.",
+      "edad": "18 años",
+      "imagen": "/images/permisos/c1.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso B",
+        "Tener 18 años cumplidos",
+        "Superar prueba teórica específica y práctica"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "c",
+      "nombre": "Permiso C",
+      "categoria": "camiones",
+      "subtitulo": "Camiones pesados",
+      "descripcion": "Permiso para conducir vehículos con masa máxima autorizada superior a 3.500 kg, diseñados para transportar hasta 9 pasajeros.",
+      "edad": "21 años",
+      "imagen": "/images/permisos/c.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso B",
+        "Tener 21 años cumplidos",
+        "Superar prueba teórica específica y práctica"
+      ],
+      "destacado": true
+    },
+    {
+      "id": "c1e",
+      "nombre": "Permiso C1+E",
+      "categoria": "camiones",
+      "subtitulo": "Camión mediano con remolque",
+      "descripcion": "Permiso para conducir conjuntos de vehículos formados por un vehículo del permiso C1 y un remolque de más de 750 kg.",
+      "edad": "18 años",
+      "imagen": "/images/permisos/c1e.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso C1",
+        "Superar prueba práctica específica"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "ce",
+      "nombre": "Permiso C+E",
+      "categoria": "camiones",
+      "subtitulo": "Camión con remolque",
+      "descripcion": "Permiso para conducir conjuntos de vehículos formados por un vehículo del permiso C y un remolque de más de 750 kg.",
+      "edad": "21 años",
+      "imagen": "/images/permisos/ce.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso C",
+        "Superar prueba práctica específica"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "d1",
+      "nombre": "Permiso D1",
+      "categoria": "autobuses",
+      "subtitulo": "Minibuses",
+      "descripcion": "Permiso para conducir vehículos diseñados para transportar hasta 17 pasajeros además del conductor, con longitud máxima de 8 metros.",
+      "edad": "21 años",
+      "imagen": "/images/permisos/d1.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso B",
+        "Tener 21 años cumplidos",
+        "Superar prueba teórica específica y práctica"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "d",
+      "nombre": "Permiso D",
+      "categoria": "autobuses",
+      "subtitulo": "Autobuses",
+      "descripcion": "Permiso para conducir vehículos diseñados para transportar más de 9 pasajeros incluido el conductor.",
+      "edad": "24 años",
+      "imagen": "/images/permisos/d.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso B",
+        "Tener 24 años cumplidos (o 21 con CAP)",
+        "Superar prueba teórica específica y práctica"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "d1e",
+      "nombre": "Permiso D1+E",
+      "categoria": "autobuses",
+      "subtitulo": "Minibús con remolque",
+      "descripcion": "Permiso para conducir conjuntos de vehículos formados por un vehículo del permiso D1 y un remolque de más de 750 kg.",
+      "edad": "21 años",
+      "imagen": "/images/permisos/d1e.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso D1",
+        "Superar prueba práctica específica"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "de",
+      "nombre": "Permiso D+E",
+      "categoria": "autobuses",
+      "subtitulo": "Autobús con remolque",
+      "descripcion": "Permiso para conducir conjuntos de vehículos formados por un vehículo del permiso D y un remolque de más de 750 kg.",
+      "edad": "24 años",
+      "imagen": "/images/permisos/de.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso D",
+        "Superar prueba práctica específica"
+      ],
+      "destacado": false
+    },
+    {
+      "id": "cap",
+      "nombre": "CAP",
+      "categoria": "profesional",
+      "subtitulo": "Certificado de Aptitud Profesional",
+      "descripcion": "Certificación obligatoria para conductores profesionales de transporte de mercancías y viajeros. Incluye formación inicial y continua.",
+      "edad": "Según permiso",
+      "imagen": "/images/permisos/cap.png",
+      "requisitos": [
+        "Estar en posesión del permiso correspondiente (C, D)",
+        "Superar curso de formación (140h inicial o 35h continua)",
+        "Superar examen teórico"
+      ],
+      "destacado": true
+    },
+    {
+      "id": "adr",
+      "nombre": "ADR",
+      "categoria": "profesional",
+      "subtitulo": "Mercancías Peligrosas",
+      "descripcion": "Autorización especial para el transporte de mercancías peligrosas por carretera. Diferentes especialidades según el tipo de mercancía.",
+      "edad": "21 años",
+      "imagen": "/images/permisos/adr.jpg",
+      "requisitos": [
+        "Estar en posesión del permiso B (mínimo)",
+        "Tener 21 años cumplidos",
+        "Superar curso de formación y examen"
+      ],
+      "destacado": false
+    }
+  ],
+  "home": {
+    "heroTitulo": "Tu carnet de conducir en Zaragoza",
+    "heroSubtitulo": "Más de 30 años formando conductores profesionales",
+    "heroBoton": "Ver todos los permisos",
+    "seccionPermisos": {
+      "titulo": "Todos los permisos de conducir",
+      "subtitulo": "Desde el carnet de coche hasta autobuses y mercancías peligrosas"
+    },
+    "seccionSedes": {
+      "titulo": "Nuestras sedes en Zaragoza",
+      "subtitulo": "Dos centros de formación para estar más cerca de ti"
+    },
+    "seccionContacto": {
+      "titulo": "¿Tienes dudas?",
+      "subtitulo": "Contacta con nosotros y te asesoramos sin compromiso"
+    }
+  },
+  "teorica": {
+    "titulo": "Teórica Online",
+    "descripcion": "Disfruta de todos los videos que ofrecemos en cada uno de los temas del libro y podrás desde tu ordenador, aclarar cualquier duda que te pueda surgir durante la lectura de tu libro de teórica.",
+    "metodo": [
+      "Ver todos los videos de un tema",
+      "Hacer el test temático de ese tema en modo ayuda",
+      "Cuando el test dé errores y tengamos unas 30 preguntas falladas, realizar de nuevo el test al cabo de unos días",
+      "Una vez terminados todos los test temáticos, empezar con los test de examen"
+    ],
+    "videos": [
+      {
+        "tema": "Tema 1",
+        "titulo": "Definiciones",
+        "youtube": "V4XD7WmWg2E"
+      },
+      {
+        "tema": "Tema 2",
+        "titulo": "Documentación",
+        "youtube": "trzV9ddqmBM"
+      },
+      {
+        "tema": "Tema 3",
+        "titulo": "El conductor",
+        "youtube": "WhNgDWgfs98"
+      },
+      {
+        "tema": "Tema 4",
+        "titulo": "Los usuarios de la vía",
+        "youtube": "AlNOGfF7v1M"
+      },
+      {
+        "tema": "Tema 5 (parte 1)",
+        "titulo": "Los dispositivos de seguridad",
+        "youtube": "fZz3TjHKsuQ"
+      },
+      {
+        "tema": "Tema 5 (parte 2)",
+        "titulo": "Los dispositivos de seguridad",
+        "youtube": "FcVtYUU9Qbo"
+      },
+      {
+        "tema": "Tema 6",
+        "titulo": "Mandos del vehículo, visibilidad y acomodación",
+        "youtube": "PgG1m8IS_EQ"
+      },
+      {
+        "tema": "Tema 7",
+        "titulo": "Alumbrado y señalización del vehículo",
+        "youtube": "4mdwIsRd-Bk"
+      },
+      {
+        "tema": "Tema 8 (parte 1)",
+        "titulo": "Señalización de la vía",
+        "youtube": "9NrMnSkVAqk"
+      },
+      {
+        "tema": "Tema 8 (parte 2)",
+        "titulo": "Señalización de la vía",
+        "youtube": "hiZr9lswx0c"
+      },
+      {
+        "tema": "Tema 8 (parte 3)",
+        "titulo": "Señalización de la vía",
+        "youtube": "zzEIESgOW9c"
+      }
+    ],
+    "enlaceResultados": "https://sedeapl.dgt.gob.es:7443/WEB_NOTP_CONSULTA/consultaNota.faces"
+  }
+}
