@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import {
   Sparkles, TrendingUp, Clock, Zap,
-  ChevronDown, ChevronUp, Trash2, Plus
+  ChevronDown, ChevronUp, Trash2, ThumbsDown, X
 } from 'lucide-react';
 
 const categoryConfig = {
@@ -23,6 +23,7 @@ const statusConfig = {
   launched: { label: 'Lanzado', color: 'bg-green-500/20 text-green-400' },
   paused: { label: 'Pausado', color: 'bg-orange-500/20 text-orange-400' },
   discarded: { label: 'Descartado', color: 'bg-red-500/20 text-red-400' },
+  rejected: { label: 'Rechazada', color: 'bg-red-500/20 text-red-400' },
 };
 
 const difficultyColors = {
@@ -36,6 +37,8 @@ export default function AutomationsPanel({ data: initial }) {
   const [generating, setGenerating] = useState(false);
   const [expanded, setExpanded] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [rejecting, setRejecting] = useState(null); // id de la idea a rechazar
+  const [rejectReason, setRejectReason] = useState('');
 
   async function generateIdeas() {
     setGenerating(true);
@@ -74,6 +77,21 @@ export default function AutomationsPanel({ data: initial }) {
     } catch {}
   }
 
+  async function rejectIdea() {
+    if (!rejecting || !rejectReason.trim()) return;
+    try {
+      await fetch(`/api/automations/${rejecting}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'rejected', rejection_reason: rejectReason.trim() }),
+      });
+      const fresh = await fetch('/api/automations').then(r => r.json());
+      setData(fresh);
+    } catch {}
+    setRejecting(null);
+    setRejectReason('');
+  }
+
   const automations = filter === 'all'
     ? data?.automations || []
     : (data?.automations || []).filter(a => a.status === filter);
@@ -107,7 +125,7 @@ export default function AutomationsPanel({ data: initial }) {
       {/* Actions bar */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-2">
-          {['all', 'idea', 'evaluating', 'in_progress', 'launched'].map(s => (
+          {['all', 'idea', 'evaluating', 'in_progress', 'launched', 'rejected'].map(s => (
             <button
               key={s}
               onClick={() => setFilter(s)}
@@ -230,6 +248,14 @@ export default function AutomationsPanel({ data: initial }) {
                     </div>
                   )}
 
+                  {/* Motivo de rechazo si está rechazada */}
+                  {auto.status === 'rejected' && auto.rejection_reason && (
+                    <div className="mb-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                      <p className="text-xs text-red-400 font-medium mb-1">Motivo del rechazo:</p>
+                      <p className="text-sm text-gray-300">{auto.rejection_reason}</p>
+                    </div>
+                  )}
+
                   {/* Actions */}
                   <div className="flex items-center gap-2 pt-3 border-t border-gray-800">
                     <select
@@ -242,9 +268,20 @@ export default function AutomationsPanel({ data: initial }) {
                       ))}
                     </select>
 
+                    {auto.status !== 'rejected' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setRejecting(auto.id); setRejectReason(''); }}
+                        className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Rechazar idea"
+                      >
+                        <ThumbsDown size={14} />
+                        Rechazar
+                      </button>
+                    )}
+
                     <button
                       onClick={() => deleteAutomation(auto.id)}
-                      className="p-1.5 text-gray-500 hover:text-red-400 transition-colors"
+                      className="p-1.5 text-gray-500 hover:text-red-400 transition-colors ml-auto"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -255,6 +292,48 @@ export default function AutomationsPanel({ data: initial }) {
           );
         })}
       </div>
+
+      {/* Modal de rechazo */}
+      {rejecting && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h3 className="text-white font-medium">Rechazar idea</h3>
+              <button onClick={() => setRejecting(null)} className="text-gray-500 hover:text-gray-300">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-gray-400 mb-3">
+                Explica por qué rechazas esta idea. La IA lo tendrá en cuenta para no proponer ideas similares.
+              </p>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Ej: No es viable porque requiere demasiada inversión inicial..."
+                rows={3}
+                autoFocus
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-red-500 resize-none"
+              />
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t border-gray-800">
+              <button
+                onClick={() => setRejecting(null)}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={rejectIdea}
+                disabled={!rejectReason.trim()}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Rechazar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

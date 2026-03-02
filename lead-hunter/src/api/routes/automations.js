@@ -20,11 +20,16 @@ function ensureTable() {
       status TEXT DEFAULT 'idea',
       progress INTEGER DEFAULT 0,
       notes TEXT,
+      rejection_reason TEXT,
       generated_by TEXT DEFAULT 'ai',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
   `);
+  // Migración: añadir rejection_reason si no existe
+  try {
+    db.exec('ALTER TABLE automations ADD COLUMN rejection_reason TEXT');
+  } catch {}
 }
 
 // GET /api/automations — Listar automatizaciones
@@ -59,6 +64,7 @@ router.get('/', (req, res) => {
       launched: all.filter(a => a.status === 'launched').length,
       paused: all.filter(a => a.status === 'paused').length,
       discarded: all.filter(a => a.status === 'discarded').length,
+      rejected: all.filter(a => a.status === 'rejected').length,
     },
     totalRevenuePotential: all
       .filter(a => a.status !== 'discarded')
@@ -136,7 +142,7 @@ router.patch('/:id', (req, res) => {
 
   const fields = ['title', 'description', 'category', 'investment_estimate',
     'monthly_revenue_estimate', 'time_to_launch', 'difficulty',
-    'implementation_plan', 'status', 'progress', 'notes'];
+    'implementation_plan', 'status', 'progress', 'notes', 'rejection_reason'];
 
   const updates = [];
   const params = [];

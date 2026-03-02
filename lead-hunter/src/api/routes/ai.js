@@ -17,8 +17,9 @@ router.post('/ideas', async (req, res) => {
     const totalOnline = db.prepare("SELECT COUNT(*) as c FROM leads WHERE lead_type = 'online'").get().c;
     const hotLeads = db.prepare("SELECT COUNT(*) as c FROM leads WHERE lead_tier = 'hot'").get().c;
 
-    // Ideas existentes
+    // Ideas existentes y rechazadas
     let existingIdeas = 'Ninguna todavía';
+    let rejectedContext = '';
     try {
       db.exec(`CREATE TABLE IF NOT EXISTS automations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,13 +34,22 @@ router.post('/ideas', async (req, res) => {
         status TEXT DEFAULT 'idea',
         progress INTEGER DEFAULT 0,
         notes TEXT,
+        rejection_reason TEXT,
         generated_by TEXT DEFAULT 'ai',
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
       )`);
-      const existing = db.prepare('SELECT title FROM automations').all();
+      try { db.exec('ALTER TABLE automations ADD COLUMN rejection_reason TEXT'); } catch {}
+
+      const existing = db.prepare("SELECT title FROM automations WHERE status != 'rejected'").all();
       if (existing.length > 0) {
         existingIdeas = existing.map(a => a.title).join(', ');
+      }
+
+      const rejected = db.prepare("SELECT title, rejection_reason FROM automations WHERE status = 'rejected' AND rejection_reason IS NOT NULL").all();
+      if (rejected.length > 0) {
+        rejectedContext = '\n\nIDEAS RECHAZADAS (NO proponer nada similar, ten en cuenta los motivos del rechazo):\n' +
+          rejected.map(r => `- "${r.title}": rechazada porque ${r.rejection_reason}`).join('\n');
       }
     } catch {}
 
@@ -50,7 +60,7 @@ CONTEXTO:
 - Leads calientes: ${hotLeads}
 - Servicios actuales: desarrollo web, apps móviles, automatización, IA, chatbots
 - Clientes típicos: pymes locales (peluquerías, restaurantes, clínicas, talleres, academias, tiendas, gimnasios, inmobiliarias)
-- Ideas ya propuestas: ${existingIdeas}
+- Ideas ya propuestas: ${existingIdeas}${rejectedContext}
 
 Propón 3 nuevas ideas de negocio/automatización de ingresos para T800 Labs.
 
@@ -70,7 +80,7 @@ Prioriza ideas que:
 - Sean escalables
 - Tengan baja inversión inicial
 - Se puedan validar rápido (MVP en <2 semanas)
-- NO repitan ideas ya propuestas
+- NO repitan ideas ya propuestas ni ideas rechazadas
 
 Responde SOLO con el JSON array, sin texto adicional.`;
 
