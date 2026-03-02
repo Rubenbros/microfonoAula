@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+
+<p>Hi,</p>
+
+<p>I saw your post looking for {{serviceDescription}} and I think I can help.</p>
+
+<p>I'm Ruben, a <strong>senior software developer with 7+ years of experience</strong> specializing in Java, full-stack web development, and automation. I've built everything from complete web platforms to custom bots and business process automation.</p>
+
+{{#if budget}}
+<p>I noticed your budget is around ${{budget}} — I can work within that range and deliver quality results.</p>
+{{/if}}
+
+<p>A few things that set me apart:</p>
+<ul>
+  <li>Full-stack: I handle frontend, backend, databases, and deployment</li>
+  <li>7+ years Java Senior + Node.js, React, Python</li>
+  <li>3 years teaching Software Development & AI at university level (DAM/DAW)</li>
+  <li>I've built and deployed real production systems (not just tutorials)</li>
+  <li>Direct communication — you talk to the developer, not a middleman</li>
+</ul>
+
+<p>You can check some of my work:</p>
+<ul>
+  <li><a href="https://t800labs.com">t800labs.com</a> — My company: Web Development, Apps & AI</li>
+  <li><a href="https://noesgratis.es">noesgratis.es</a></li>
+  <li><a href="https://therehabstudio.es">therehabstudio.es</a></li>
+  {{#if linkedinUrl}}<li><a href="{{linkedinUrl}}">LinkedIn</a></li>{{/if}}
+</ul>
+
+<p>Would you like to have a quick 15-min call to discuss your project? I'm flexible with timezones.</p>
+
+<p>Best,<br>
+<strong>Rubén Jarne</strong><br>
+{{#if senderPhone}}WhatsApp: +34 {{senderPhone}}{{/if}}</p>
+
+<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 10px;">
+<p style="font-size: 11px; color: #999;">If you don't want to receive more emails, reply with "not interested" and I won't contact you again.</p>
+
+</body>
+</html>

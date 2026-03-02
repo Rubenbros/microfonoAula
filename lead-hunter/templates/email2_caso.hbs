@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+
+<p>Hola de nuevo,</p>
+
+<p>Te escribí hace unos días sobre cómo podría ayudar a <strong>{{businessName}}</strong> a tener más visibilidad online.</p>
+
+<p>Quería compartirte un ejemplo rápido: hace poco ayudé a un negocio del sector de {{sector}} en {{zone}} a montar su presencia digital. En menos de un mes:</p>
+
+<ul>
+  <li>✅ Empezaron a aparecer en las búsquedas de Google</li>
+  <li>✅ Recibían reservas online a cualquier hora (incluso de madrugada)</li>
+  <li>✅ Dejaron de perder tiempo con llamadas y WhatsApps para gestionar citas</li>
+</ul>
+
+<p>Lo mejor es que fue un proceso muy sencillo para ellos — <strong>yo me encargué de todo</strong> y en una semana estaba funcionando.</p>
+
+{{#if hasPersonalDemo}}
+<p>¿Viste la web que te preparé? Por si no la abriste, aquí la tienes:</p>
+<p style="text-align: center; margin: 20px 0;">
+  <a href="{{demoUrl}}" style="background: #2196F3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Ver la web de {{businessName}} →</a>
+</p>
+<p>Es un ejemplo funcional — tus clientes ya podrían encontrarte y reservar con eso. Y la versión final se adapta a lo que necesites.</p>
+{{else if demoUrl}}
+<p>¿Viste el ejemplo que te mandé? Por si no lo abriste, aquí lo tienes otra vez:</p>
+<p style="text-align: center; margin: 20px 0;">
+  <a href="{{demoUrl}}" style="background: #2196F3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Ver ejemplo para tu sector →</a>
+</p>
+<p>Así de fácil podría ser para tus clientes encontrar <strong>{{businessName}}</strong> y reservar online.</p>
+{{else}}
+<p>Si te interesa, puedo pasarme por {{businessName}} un día que te venga bien y enseñarte en 10 minutos cómo funcionaría para ti. Sin compromiso.</p>
+{{/if}}
+
+<p>¿Qué te parece?</p>
+
+<p>Un saludo,<br>
+<strong>{{senderName}}</strong><br>
+{{#if senderPhone}}📱 {{senderPhone}}{{/if}}</p>
+
+<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 10px;">
+<p style="font-size: 11px; color: #999;">Si no quieres recibir más emails, responde con "no me interesa" y no volveré a contactarte.</p>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+
+<p>Hola,</p>
+
+<p>Último mensaje, no quiero ser pesado 😊</p>
+
+<p>Solo quería hacerte una propuesta concreta para <strong>{{businessName}}</strong>:</p>
+
+<div style="background: #f8f9fa; border-left: 4px solid #4CAF50; padding: 15px; margin: 15px 0;">
+  <p style="margin: 0;"><strong>Prueba sin riesgo:</strong> Te monto una solución digital completa y si en 30 días no ves resultados, no me pagas nada.</p>
+</div>
+
+<p>Incluye:</p>
+<ul>
+  {{#unless hasWebsite}}<li>Web profesional optimizada para móvil</li>{{/unless}}
+  {{#unless hasBooking}}<li>Sistema de reservas/citas online 24/7</li>{{/unless}}
+  {{#unless hasSocial}}<li>Presencia en redes sociales</li>{{/unless}}
+  <li>Aparecer en las primeras posiciones de Google en tu zona</li>
+  <li>Soporte y mantenimiento continuo</li>
+</ul>
+
+{{#if hasPersonalDemo}}
+<p>La web que te preparé sigue disponible: <a href="{{demoUrl}}" style="color: #2196F3; font-weight: bold;">ver web de {{businessName}}</a>. Puedo dejártela lista y funcionando en menos de una semana.</p>
+{{else if demoUrl}}
+<p>Recuerda que puedes ver <a href="{{demoUrl}}" style="color: #2196F3; font-weight: bold;">un ejemplo de web para tu sector aquí</a>. Puedo tener algo así personalizado para <strong>{{businessName}}</strong> en menos de una semana.</p>
+{{/if}}
+
+<p>Si te interesa, responde a este email o llámame al {{senderPhone}}. Si no, no te molestaré más.</p>
+
+<p>¡Mucho éxito con {{businessName}}!</p>
+
+<p>Un saludo,<br>
+<strong>{{senderName}}</strong><br>
+{{#if senderPhone}}📱 {{senderPhone}}{{/if}}</p>
+
+<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 10px;">
+<p style="font-size: 11px; color: #999;">Este es el último email que recibirás. No volveré a contactarte.</p>
+
+</body>
+</html>

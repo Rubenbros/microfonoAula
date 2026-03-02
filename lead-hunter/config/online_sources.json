@@ -1,0 +1,75 @@
+{
+  "reddit": {
+    "enabled": true,
+    "subreddits": [
+      { "name": "forhire", "mode": "new", "filter_title": "[Hiring]", "lang": "en", "priority": 1 },
+      { "name": "slavelabour", "mode": "search", "query": "website OR bot OR automation OR app", "lang": "en", "priority": 2 },
+      { "name": "webdev", "mode": "search", "query": "hire OR need OR looking for developer", "lang": "en", "priority": 3 },
+      { "name": "Entrepreneur", "mode": "search", "query": "need website OR need developer OR need bot OR need app", "lang": "en", "priority": 4 },
+      { "name": "smallbusiness", "mode": "search", "query": "website OR automation OR chatbot OR developer", "lang": "en", "priority": 5 },
+      { "name": "startups", "mode": "search", "query": "looking for developer OR need CTO OR need MVP OR technical cofounder", "lang": "en", "priority": 6 }
+    ],
+    "keywords": [
+      "need a website", "need a bot", "looking for developer",
+      "build me", "need automation", "chatbot", "whatsapp bot",
+      "telegram bot", "need an app", "web developer needed",
+      "ecommerce", "shopify developer", "wordpress developer",
+      "java developer", "backend developer", "full stack",
+      "necesito web", "busco programador", "necesito bot",
+      "need software", "custom software", "saas", "mvp",
+      "automate", "scraping", "api integration"
+    ],
+    "delay_between_requests_ms": 3000,
+    "max_posts_per_subreddit": 50,
+    "max_post_age_hours": 72,
+    "user_agent": "LeadHunter/1.0"
+  },
+  "freelancer": {
+    "enabled": false,
+    "categories": ["web-development", "bot-development", "automation", "wordpress", "shopify", "java", "software-architecture"],
+    "min_budget": 100,
+    "max_results": 50
+  },
+  "services_offered": [
+    {
+      "type": "website",
+      "names": ["web", "website", "landing page", "pagina web", "sitio web", "webpage"],
+      "description": "Desarrollo web profesional"
+    },
+    {
+      "type": "ecommerce",
+      "names": ["ecommerce", "tienda online", "online store", "shopify", "woocommerce", "shop"],
+      "description": "Tiendas online y ecommerce"
+    },
+    {
+      "type": "bot",
+      "names": ["bot", "telegram bot", "discord bot", "slack bot"],
+      "description": "Bots para plataformas"
+    },
+    {
+      "type": "chatbot",
+      "names": ["chatbot", "whatsapp bot", "chat bot", "ai chat", "customer support bot", "live chat"],
+      "description": "Chatbots con IA para atención al cliente"
+    },
+    {
+      "type": "automation",
+      "names": ["automation", "automate", "automatizar", "workflow", "n8n", "zapier", "make", "integration", "api integration"],
+      "description": "Automatización de procesos"
+    },
+    {
+      "type": "software",
+      "names": ["software", "application", "app", "saas", "platform", "mvp", "custom software", "enterprise", "backend", "api", "microservices"],
+      "description": "Software a medida, APIs, backends"
+    },
+    {
+      "type": "scraping",
+      "names": ["scraping", "scraper", "web scraping", "data extraction", "crawler"],
+      "description": "Web scraping y extracción de datos"
+    },
+    {
+      "type": "ai_training",
+      "names": ["ai training", "ai course", "ai workshop", "learn ai", "ai for business", "ai productivity", "ai agents", "machine learning training", "chatgpt training", "ai implementation", "ai consulting", "train my team", "ai education", "formacion ia", "curso ia", "taller ia", "capacitacion ia"],
+      "description": "Cursos y formación de IA y productividad para empresas"
+    }
+  ]
+}

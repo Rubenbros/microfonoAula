@@ -1,0 +1,86 @@
+{
+  "sectors": [
+    {
+      "id": "peluqueria",
+      "name": "Peluquerías y barberías",
+      "keywords": ["peluquería", "barbería", "salón de belleza", "estética"],
+      "pain_points": ["sistema de reservas online", "agenda digital", "presencia web"],
+      "avg_project_value": 800,
+      "monthly_value": 40,
+      "priority": 1
+    },
+    {
+      "id": "restaurante",
+      "name": "Restaurantes y bares",
+      "keywords": ["restaurante", "bar", "cafetería", "mesón", "taberna"],
+      "pain_points": ["carta digital QR", "reservas online", "pedidos online"],
+      "avg_project_value": 1200,
+      "monthly_value": 50,
+      "priority": 2
+    },
+    {
+      "id": "clinica",
+      "name": "Clínicas y dentistas",
+      "keywords": ["clínica dental", "dentista", "fisioterapia", "podólogo", "clínica veterinaria"],
+      "pain_points": ["citas online", "recordatorios automáticos", "historial digital"],
+      "avg_project_value": 2000,
+      "monthly_value": 80,
+      "priority": 3
+    },
+    {
+      "id": "taller",
+      "name": "Talleres mecánicos",
+      "keywords": ["taller mecánico", "taller de coches", "mecánico", "ITV"],
+      "pain_points": ["gestión de clientes", "presupuestos automáticos", "recordatorios revisión"],
+      "avg_project_value": 1500,
+      "monthly_value": 60,
+      "priority": 4
+    },
+    {
+      "id": "academia",
+      "name": "Academias y formación",
+      "keywords": ["academia", "centro de formación", "clases particulares", "autoescuela"],
+      "pain_points": ["plataforma de alumnos", "pagos online", "horarios"],
+      "avg_project_value": 1800,
+      "monthly_value": 70,
+      "priority": 5
+    },
+    {
+      "id": "tienda",
+      "name": "Tiendas locales",
+      "keywords": ["tienda", "comercio", "boutique", "floristería", "papelería"],
+      "pain_points": ["tienda online", "catálogo digital", "presencia en redes"],
+      "avg_project_value": 1000,
+      "monthly_value": 40,
+      "priority": 6
+    },
+    {
+      "id": "gimnasio",
+      "name": "Gimnasios y centros deportivos",
+      "keywords": ["gimnasio", "crossfit", "pilates", "yoga", "centro deportivo"],
+      "pain_points": ["gestión de socios", "reserva de clases", "cobros automáticos"],
+      "avg_project_value": 2500,
+      "monthly_value": 100,
+      "priority": 7
+    },
+    {
+      "id": "inmobiliaria",
+      "name": "Inmobiliarias pequeñas",
+      "keywords": ["inmobiliaria", "agencia inmobiliaria", "fincas"],
+      "pain_points": ["web de propiedades", "portal propio", "gestión de visitas"],
+      "avg_project_value": 2000,
+      "monthly_value": 80,
+      "priority": 8
+    }
+  ],
+  "zones": [
+    { "name": "Zaragoza Centro", "query": "Zaragoza centro", "priority": 1 },
+    { "name": "Zaragoza Delicias", "query": "Zaragoza Delicias", "priority": 2 },
+    { "name": "Zaragoza Actur", "query": "Zaragoza Actur", "priority": 3 },
+    { "name": "Utebo", "query": "Utebo Zaragoza", "priority": 4 },
+    { "name": "Calatayud", "query": "Calatayud", "priority": 5 },
+    { "name": "Ejea de los Caballeros", "query": "Ejea de los Caballeros", "priority": 6 },
+    { "name": "Huesca", "query": "Huesca", "priority": 7 },
+    { "name": "Teruel", "query": "Teruel", "priority": 8 }
+  ]
+}

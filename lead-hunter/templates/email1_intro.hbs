@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+
+<p>Hola,</p>
+
+<p>Me llamo {{senderName}} y me dedico a ayudar a negocios como <strong>{{businessName}}</strong> a conseguir más clientes usando herramientas digitales sencillas.</p>
+
+<p>He visto que {{mainProblem}}. No te lo digo como crítica — es algo muy común en el sector y tiene solución rápida.</p>
+
+{{#unless hasWebsite}}
+<p>Hoy en día, <strong>el 80% de la gente busca en Google antes de ir a un sitio</strong>. Si no te encuentran online, van a tu competencia. Una web sencilla con reservas online puede marcar la diferencia.</p>
+{{/unless}}
+
+{{#unless hasBooking}}
+<p>Muchos clientes prefieren <strong>reservar desde el móvil a cualquier hora</strong>, no solo en horario de apertura. Un sistema de citas online trabaja por ti 24/7.</p>
+{{/unless}}
+
+{{#if hasPersonalDemo}}
+<p>De hecho, <strong>he preparado una web de ejemplo para {{businessName}}</strong> con tu nombre, tu dirección y tu teléfono:</p>
+<p style="text-align: center; margin: 20px 0;">
+  <a href="{{demoUrl}}" style="background: #2196F3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Ver la web de {{businessName}} →</a>
+</p>
+<p>Así de fácil sería para tus clientes encontrarte y reservar online. Y eso es solo un ejemplo — la versión final se adapta 100% a lo que necesites.</p>
+{{else if demoUrl}}
+<p>He preparado <strong>un ejemplo de cómo podría verse una web para un negocio de tu sector</strong>:</p>
+<p style="text-align: center; margin: 20px 0;">
+  <a href="{{demoUrl}}" style="background: #2196F3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Ver ejemplo de web →</a>
+</p>
+<p>Imagina algo así pero con el nombre de <strong>{{businessName}}</strong>, tu dirección, tu teléfono... listo para que tus clientes te encuentren y reserven.</p>
+{{else}}
+<p>¿Te interesaría ver cómo podría ayudarte? Sin compromiso, puedo enseñarte en 10 minutos lo que haría para tu negocio. Puedes ver ejemplos de lo que hacemos en <a href="https://t800labs.com" style="color: #2196F3;">t800labs.com</a>.</p>
+{{/if}}
+
+<p>Un saludo,<br>
+<strong>{{senderName}}</strong><br>
+{{#if senderPhone}}📱 {{senderPhone}}{{/if}}</p>
+
+<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 10px;">
+<p style="font-size: 11px; color: #999;">Si no quieres recibir más emails, responde con "no me interesa" y no volveré a contactarte.</p>
+
+</body>
+</html>
