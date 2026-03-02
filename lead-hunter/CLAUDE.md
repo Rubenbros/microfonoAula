@@ -11,7 +11,7 @@
 
 ## Descripción del proyecto
 
-Sistema automatizado para encontrar negocios locales (Zaragoza y alrededores) que necesitan digitalización/automatización, contactarles automáticamente por email frío personalizado con una web demo personalizada, y gestionar el pipeline de ventas desde un bot de Telegram.
+Sistema automatizado para encontrar negocios locales (Zaragoza y alrededores) que necesitan digitalización/automatización, contactarles automáticamente por email frío personalizado con una web demo personalizada, y gestionar el pipeline de ventas desde un panel web y un bot de Telegram.
 
 ## Objetivo de negocio
 
@@ -39,10 +39,40 @@ Ofrecerles servicios de automatización/digitalización:
                                   └────────────→ [Email automático]
                                                   (con link a demo)
                                                         ↓
-                                                [Bot Telegram]
-                                                (notificaciones +
-                                                 gestión pipeline)
+                                          ┌─────────────┴──────────────┐
+                                    [Bot Telegram]              [Panel Web]
+                                    (notificaciones +      (panel.t800labs.com)
+                                     gestión pipeline)    (Next.js en Vercel)
+                                                                ↓
+                                                        [API Backend Express]
+                                                        (localhost:3000 +
+                                                         Cloudflare Tunnel)
+                                                                ↓
+                                                        [Claude Code CLI]
+                                                        (IA vía claude -p,
+                                                         suscripción Max)
 ```
+
+## Deployment & Infraestructura
+
+### Panel Web (Frontend)
+- **URL**: https://panel.t800labs.com
+- **Hosting**: Vercel (auto-deploy desde GitHub)
+- **Repo**: github.com/Rubenbros/lead-hunter (privado)
+- **Root directory en Vercel**: `lead-hunter/web`
+- **Branch de producción**: `main`
+- **Framework**: Next.js 16 con App Router
+
+### Backend API
+- **Runtime**: Node.js + Express en local
+- **Puerto**: 3000
+- **Acceso público**: Cloudflare Quick Tunnel (URL dinámica, se renueva en cada arranque)
+- **Arranque**: `bash start.sh` (levanta backend + tunnel, actualiza BACKEND_URL en Vercel)
+
+### Nota sobre Git
+- El repositorio `.git/` está en `ClaudeProjects/` (un nivel arriba)
+- En GitHub la estructura es: `lead-hunter/web/`, `lead-hunter/src/`, etc.
+- Vercel tiene root directory configurado a `lead-hunter/web`
 
 ## Módulos
 
@@ -50,8 +80,13 @@ Ofrecerles servicios de automatización/digitalización:
 
 #### Google Maps (`maps.js`)
 - Escanea Google Maps por zona y categoría de negocio
+- Usa URL directa: `/maps/search/${query}` (sin rellenar searchbox)
+- Manejo de consent de cookies (iframe + botón directo, "Aceptar todo" / "Accept all")
+- User Agent Chrome 131, viewport 1280x800
+- Extracción de nombre con múltiples selectores: `h1.DUwDvf`, `h1.fontHeadlineLarge`, `[role="main"] h1`
+- Fallback con `aria-label` del listing si h1 falla
+- Filtra resultados con nombre "Resultados" (es el h1 de la página, no un negocio)
 - Extrae: nombre, dirección, teléfono, web, rating, horarios, reseñas
-- Detecta si tienen web y la calidad de la misma
 - Usa Playwright para scraping (no API de pago)
 - Rate limiting para evitar bloqueos
 
@@ -127,16 +162,96 @@ Ofrecerles servicios de automatización/digitalización:
 
 ### 6. Base de datos (`src/db/database.js`)
 - SQLite (better-sqlite3), archivo en `data/leads.db`
-- **Tabla leads**: nombre, sector, dirección, teléfono, email, web, rating, reseñas, zona, análisis (has_website, website_quality, has_booking, has_social), score, tier, tipo (local/online), fuente, demo_url, demo_slug, estado, timestamps
+- **Tabla leads**: nombre, sector, dirección, teléfono, email, web, rating, reseñas, zona, análisis (has_website, website_quality, has_booking, has_social), score, lead_tier, lead_type (local/online), fuente, demo_url, demo_slug, estado, timestamps
 - **Tabla emails_sent**: lead_id, step, template, subject, to_email, status, timestamps
 - **Tabla scans**: zona, sector, tipo, fuente, resultados, timestamps
 - **Tabla settings**: key-value para config
+- **Tabla automations**: ideas de negocio generadas por IA
+- **Tabla proposals**: propuestas comerciales generadas por IA
 - Estados de lead: new → contacted → replied → meeting → client / discarded
 - Migraciones automáticas para columnas nuevas
+- **IMPORTANTE**: las columnas son `lead_type` y `lead_tier` (no `type`/`tier`)
+
+### 7. API Backend (`src/api/`)
+
+Servidor Express (puerto 3000) que expone la lógica del backend al panel web.
+
+#### server.js
+- Express con CORS, JSON parsing
+- Autenticación por API key (`X-API-Key` header, compara con `BACKEND_API_KEY`)
+- Health check sin auth: `GET /api/health`
+
+#### Rutas (`src/api/routes/`)
+- **leads.js**: CRUD de leads, filtros por tier/status
+- **stats.js**: estadísticas del dashboard
+- **emails.js**: historial de emails enviados
+- **activities.js**: actividad reciente
+- **proposals.js**: propuestas comerciales
+- **automations.js**: ideas de negocio
+- **settings.js**: configuración
+- **ai.js**: generación de ideas y propuestas con Claude Code CLI
+- **scans.js**: lanzar scans y consultar historial/jobs
+
+#### Jobs en background (`src/api/jobs.js`)
+- Sistema de jobs en memoria (Map) con estados: pending → running → completed/failed
+- Polling desde frontend cada 3s
+- Lock de Playwright (solo 1 scan de navegador a la vez)
+- TTL de 24h, limpieza automática
+
+### 8. IA con Claude Code CLI (`src/ai/claude.js`)
+- Wrapper para `claude -p` (modo headless de Claude Code)
+- **Usa suscripción Max** (sin coste adicional de API)
+- `askClaude(prompt, options)`: ejecuta prompt, devuelve texto
+- `askClaudeJSON(prompt, options)`: ejecuta prompt, parsea JSON de la respuesta
+- Limpia env vars de Claude Code antes de spawn (`CLAUDECODE`, `CLAUDE_CODE_*`)
+- Modelo: `sonnet` por defecto
+- Timeout: 120s, maxBuffer: 1MB
+- **NO funciona si el backend se arranca desde dentro de una sesión de Claude Code** (nested session detection). Funciona correctamente con `start.sh`.
+
+#### Endpoints de IA (`src/api/routes/ai.js`)
+- `POST /api/ai/ideas`: genera 3 ideas de negocio basadas en datos de leads
+- `POST /api/ai/proposal`: genera propuesta comercial personalizada para un lead
+
+### 9. Panel Web (`web/`)
+
+Aplicación Next.js 16 con App Router desplegada en Vercel.
+
+#### Páginas
+- `/` — Dashboard con estadísticas
+- `/leads` — Lista de leads con filtros
+- `/leads/[id]` — Detalle de lead
+- `/pipeline` — Pipeline de ventas (kanban)
+- `/scans` — Escáner: lanzar scans de Maps/Reddit/LinkedIn/Scoring
+- `/automations` — Ideas de negocio generadas por IA
+- `/settings` — Configuración
+- `/login` — Login (password simple)
+
+#### Autenticación
+- NextAuth v5 (beta.30) con CredentialsProvider
+- Password: variable `ADMIN_PASSWORD` en Vercel
+- Requiere `AUTH_SECRET`, `AUTH_TRUST_HOST=true`, `trustHost: true` en config
+- `.trim()` en comparación de credenciales (Vercel env vars pueden tener `\n`)
+
+#### Componentes principales (`web/components/`)
+- `Layout.jsx` — DashboardLayout con Sidebar
+- `Sidebar.jsx` — Navegación lateral (Dashboard, Leads, Pipeline, Escáner, Automatizaciones, Ajustes)
+- `ScanPanel.jsx` — Panel de escáner con 4 tarjetas (Maps, Reddit, LinkedIn, Scoring) + historial
+- `AutomationsPanel.jsx` — Panel de ideas de negocio
+- `LeadTable.jsx`, `LeadDetail.jsx`, `PipelineBoard.jsx`, etc.
+
+#### API Routes (proxy al backend)
+- `web/app/api/scans/route.js` — GET config/history/jobs
+- `web/app/api/scans/launch/route.js` — POST lanzar scan
+- `web/app/api/scans/jobs/[id]/route.js` — GET estado de job
+- `web/app/api/automations/generate/route.js` — POST generar ideas (proxy a backend)
+- `web/app/api/proposals/generate/route.js` — POST generar propuesta (proxy a backend)
+- `web/lib/backend.js` — Helper `backendFetch()` que añade API key y headers
 
 ## Stack tecnológico
 
+### Backend
 - **Runtime**: Node.js (ESM modules)
+- **API**: Express.js
 - **Scraping**: Playwright (chromium headless)
 - **Base de datos**: SQLite (better-sqlite3)
 - **Emails**: Nodemailer (SMTP Google Workspace, App Password)
@@ -145,6 +260,15 @@ Ofrecerles servicios de automatización/digitalización:
 - **Templates**: Handlebars (.hbs)
 - **Logging**: Winston
 - **Config**: dotenv
+- **IA**: Claude Code CLI (`claude -p`)
+
+### Frontend (Panel Web)
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **Auth**: NextAuth v5 (beta.30)
+- **Estilos**: Tailwind CSS
+- **Iconos**: lucide-react
+- **Hosting**: Vercel
+- **Proxy**: backendFetch → Express API via Cloudflare Tunnel
 
 ## Estructura de archivos
 
@@ -152,6 +276,7 @@ Ofrecerles servicios de automatización/digitalización:
 lead-hunter/
 ├── CLAUDE.md
 ├── package.json
+├── start.sh                    # Script arranque: backend + tunnel + Vercel env update
 ├── .env                        # Credenciales y config (NO commitear)
 ├── .env.example                # Ejemplo de variables de entorno
 ├── config/
@@ -165,24 +290,73 @@ lead-hunter/
 │   └── online_email3_oferta.hbs
 ├── data/
 │   └── leads.db                # Base de datos SQLite
-└── src/
-    ├── index.js                # Entry point + cron jobs
-    ├── logger.js               # Winston logger config
-    ├── scraper/
-    │   ├── maps.js             # Google Maps scraper (Playwright)
-    │   ├── website.js          # Analizador de webs
-    │   ├── reddit.js           # Reddit scraper
-    │   └── google-linkedin.js  # Google → LinkedIn scraper
-    ├── analyzer/
-    │   └── scorer.js           # Scoring local + online + auto-demo
-    ├── demo/
-    │   └── register.js         # Integración API demos t800labs.com
-    ├── emailer/
-    │   └── sender.js           # Envío emails + secuencias
-    ├── telegram/
-    │   └── commands.js         # Bot Telegram + notificaciones
-    └── db/
-        └── database.js         # Schema, queries, migraciones
+├── src/
+│   ├── index.js                # Entry point + cron jobs
+│   ├── logger.js               # Winston logger config
+│   ├── ai/
+│   │   └── claude.js           # Wrapper Claude Code CLI (claude -p)
+│   ├── api/
+│   │   ├── server.js           # Express server + middleware auth
+│   │   ├── jobs.js             # Gestor de jobs en memoria
+│   │   └── routes/
+│   │       ├── leads.js
+│   │       ├── stats.js
+│   │       ├── emails.js
+│   │       ├── activities.js
+│   │       ├── proposals.js
+│   │       ├── automations.js
+│   │       ├── settings.js
+│   │       ├── ai.js           # Endpoints IA (ideas, propuestas)
+│   │       └── scans.js        # Endpoints scans (maps, reddit, linkedin, score)
+│   ├── scraper/
+│   │   ├── maps.js             # Google Maps scraper (Playwright)
+│   │   ├── website.js          # Analizador de webs
+│   │   ├── reddit.js           # Reddit scraper
+│   │   └── google-linkedin.js  # Google → LinkedIn scraper
+│   ├── analyzer/
+│   │   └── scorer.js           # Scoring local + online + auto-demo
+│   ├── demo/
+│   │   └── register.js         # Integración API demos t800labs.com
+│   ├── emailer/
+│   │   └── sender.js           # Envío emails + secuencias
+│   ├── telegram/
+│   │   └── commands.js         # Bot Telegram + notificaciones
+│   └── db/
+│       └── database.js         # Schema, queries, migraciones
+└── web/                        # Panel Next.js (desplegado en Vercel)
+    ├── package.json
+    ├── next.config.js
+    ├── tailwind.config.js
+    ├── .vercel/                 # Config local de Vercel
+    ├── lib/
+    │   ├── auth.js             # NextAuth config
+    │   └── backend.js          # backendFetch helper
+    ├── app/
+    │   ├── layout.jsx
+    │   ├── page.jsx            # Dashboard
+    │   ├── login/page.jsx
+    │   ├── leads/page.jsx
+    │   ├── leads/[id]/page.jsx
+    │   ├── pipeline/page.jsx
+    │   ├── scans/page.jsx      # Escáner
+    │   ├── automations/page.jsx
+    │   ├── settings/page.jsx
+    │   └── api/
+    │       ├── auth/[...nextauth]/route.js
+    │       ├── leads/
+    │       ├── stats/
+    │       ├── settings/
+    │       ├── scans/          # Proxy → backend /api/scans/*
+    │       ├── automations/
+    │       └── proposals/
+    └── components/
+        ├── Layout.jsx
+        ├── Sidebar.jsx
+        ├── ScanPanel.jsx
+        ├── AutomationsPanel.jsx
+        ├── LeadTable.jsx
+        ├── LeadDetail.jsx
+        └── PipelineBoard.jsx
 ```
 
 ## Variables de entorno (.env)
@@ -209,11 +383,28 @@ LINKEDIN_URL=https://linkedin.com/in/rubenbros
 DEMO_API_URL=https://t800labs.com/api/demo
 DEMO_API_KEY=                   # Bearer token para API de demos
 
+# Backend API
+BACKEND_API_PORT=3000
+BACKEND_API_KEY=                # API key para proteger el backend
+
 # Configuración
 DAILY_EMAIL_LIMIT=30            # Máximo emails por día
 SCAN_DEFAULT_ZONE=Zaragoza      # Zona por defecto
 LEAD_SCORE_THRESHOLD=50         # Score mínimo para contactar
 ```
+
+### Variables en Vercel (panel web)
+```
+ADMIN_PASSWORD=                 # Password del panel (ej: t800admin2024)
+AUTH_SECRET=                    # Mismo valor que NEXTAUTH_SECRET
+AUTH_TRUST_HOST=true
+NEXTAUTH_SECRET=                # Secret para NextAuth
+NEXTAUTH_URL=https://panel.t800labs.com
+BACKEND_URL=                    # URL del tunnel Cloudflare (se actualiza con start.sh)
+BACKEND_API_KEY=                # Misma key que en .env del backend
+```
+
+**IMPORTANTE**: Al configurar env vars en Vercel con CLI, usar `echo -n "valor"` (sin `\n`).
 
 ## Configuración de email
 
@@ -294,6 +485,17 @@ Configurados en `config/sectors.json` con keywords, pain_points, avg_project_val
 20:00 L-V  — Resumen nocturno por Telegram
 ```
 
+## start.sh — Script de arranque
+
+El script `start.sh` levanta todo el sistema:
+1. Mata procesos previos (node, cloudflared)
+2. `unset CLAUDECODE` y vars de Claude Code (para que `claude -p` funcione)
+3. Arranca backend Express en background
+4. Arranca Cloudflare Quick Tunnel
+5. Extrae la URL del tunnel de los logs
+6. Actualiza `BACKEND_URL` en Vercel con `vercel env rm` + `vercel env add`
+7. Verifica health del backend por el tunnel
+
 ## Reglas de desarrollo
 
 - Código en JavaScript (ESM modules)
@@ -304,6 +506,8 @@ Configurados en `config/sectors.json` con keywords, pain_points, avg_project_val
 - Rate limiting en todo (Maps, emails, API demos, etc.)
 - NO almacenar datos sensibles en código, todo en .env
 - `.env` está en .gitignore
+- Columnas de BD: usar `lead_type` y `lead_tier` (no `type`/`tier`)
+- Env vars en Vercel: siempre con `echo -n` para evitar trailing `\n`
 
 ## Notas legales
 
@@ -330,14 +534,31 @@ Configurados en `config/sectors.json` con keywords, pain_points, avg_project_val
 - [x] Generación automática de demos personalizadas para leads hot/warm
 - [x] Email templates con 3 niveles de demo (personal > sector > fallback)
 
-### v1.1 — Mejoras pendientes
-- [ ] Tracking de apertura de emails
-- [ ] Notificación Telegram cuando un lead visita su demo
-- [ ] Primer escaneo real de producción
-- [ ] Instalar Playwright browsers (`npx playwright install chromium`)
+### v1.1 — Mejoras ✅
+- [x] Tracking de apertura de emails (pixel 1x1)
+- [x] Notificación Telegram cuando un lead visita su demo
+- [x] Primer escaneo real de producción (10 peluquerías Zaragoza Centro)
+- [x] Playwright browsers instalados (`npx playwright install chromium`)
+- [x] Script de arranque `start.sh`
 
-### v2.0 — Escala
-- [ ] Panel web para gestionar leads (React)
+### v2.0 — Panel Web + IA ✅
+- [x] Panel web Next.js en panel.t800labs.com (Vercel)
+- [x] Dashboard con estadísticas
+- [x] Lista de leads con filtros y detalle
+- [x] Pipeline de ventas
+- [x] Página Escáner (lanzar Maps/Reddit/LinkedIn/Scoring desde web)
+- [x] Sistema de jobs en background con polling
+- [x] Automatizaciones (ideas de negocio generadas por IA)
+- [x] Propuestas comerciales personalizadas por IA
+- [x] IA con Claude Code CLI (`claude -p`) en vez de API Anthropic
+- [x] Backend Express con API RESTful completa
+- [x] Cloudflare Quick Tunnel para acceso al backend
+- [x] Vercel conectado con GitHub (auto-deploy en push a main)
+- [x] Autenticación del panel (NextAuth + password)
+
+### v3.0 — Pendiente
 - [ ] Integración con WhatsApp Business API
-- [ ] Propuestas automáticas generadas por IA
-- [ ] CRM básico integrado
+- [ ] CRM avanzado (seguimiento de llamadas, reuniones, notas)
+- [ ] Dashboard analytics (métricas de conversión, ROI por sector/zona)
+- [ ] A/B testing de templates de email
+- [ ] Multi-usuario con roles

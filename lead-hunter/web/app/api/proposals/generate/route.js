@@ -7,10 +7,16 @@ export async function POST(request) {
 
   const { leadId } = await request.json();
 
-  // Delegar al backend local que usa Claude Code CLI (cubierto por Max)
-  const data = await backendFetch('/api/ai/proposal', {
-    method: 'POST',
-    body: JSON.stringify({ leadId }),
-  });
-  return Response.json(data);
+  try {
+    const data = await backendFetch('/api/ai/proposal', {
+      method: 'POST',
+      body: JSON.stringify({ leadId }),
+    });
+    return Response.json(data);
+  } catch (err) {
+    return Response.json(
+      { error: err.message || 'Error conectando con el backend' },
+      { status: 502 }
+    );
+  }
 }

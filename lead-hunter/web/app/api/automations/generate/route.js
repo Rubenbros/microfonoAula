@@ -5,7 +5,13 @@ export async function POST() {
   const session = await auth();
   if (!session) return Response.json({ error: 'No autorizado' }, { status: 401 });
 
-  // Delegar al backend local que usa Claude Code CLI (cubierto por Max)
-  const data = await backendFetch('/api/ai/ideas', { method: 'POST' });
-  return Response.json(data);
+  try {
+    const data = await backendFetch('/api/ai/ideas', { method: 'POST' });
+    return Response.json(data);
+  } catch (err) {
+    return Response.json(
+      { error: err.message || 'Error conectando con el backend' },
+      { status: 502 }
+    );
+  }
 }

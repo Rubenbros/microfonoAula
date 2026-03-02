@@ -27,7 +27,7 @@ export async function askClaude(prompt, options = {}) {
       '--output-format', 'text',
       '--max-turns', String(maxTurns),
       '--no-session-persistence',
-      '--model', 'sonnet',
+      '--model', 'opus',
     ];
 
     // Quitar variables de Claude Code del entorno para evitar error de nested sessions
