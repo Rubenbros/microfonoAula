@@ -20,6 +20,11 @@ const statusColors = {
   meeting: 'bg-purple-600', client: 'bg-emerald-600', discarded: 'bg-red-600',
 };
 
+const statusLabels = {
+  new: 'Nuevo', contacted: 'Contactado', replied: 'Respondido',
+  meeting: 'Reunión', client: 'Cliente', discarded: 'Descartado',
+};
+
 export default function LeadDetail({ data }) {
   const [tab, setTab] = useState('Info');
   const [statusUpdating, setStatusUpdating] = useState(false);
@@ -56,7 +61,7 @@ export default function LeadDetail({ data }) {
                 {lead.lead_tier} · {lead.lead_score}pts
               </span>
               <span className={`px-3 py-1 rounded-full text-sm text-white ${statusColors[lead.status]}`}>
-                {lead.status}
+                {statusLabels[lead.status] || lead.status}
               </span>
               <span className="text-xs text-gray-500">
                 {lead.lead_type === 'online' ? 'Online' : 'Local'} · {lead.source}
@@ -66,19 +71,25 @@ export default function LeadDetail({ data }) {
 
           {/* Status buttons */}
           <div className="flex gap-2">
-            {['contacted', 'replied', 'meeting', 'client', 'discarded'].map(s => (
+            {[
+              { key: 'contacted', label: 'Contactado' },
+              { key: 'replied', label: 'Respondido' },
+              { key: 'meeting', label: 'Reunión' },
+              { key: 'client', label: 'Cliente' },
+              { key: 'discarded', label: 'Descartado' },
+            ].map(s => (
               <button
-                key={s}
-                onClick={() => changeStatus(s)}
-                disabled={statusUpdating || lead.status === s}
+                key={s.key}
+                onClick={() => changeStatus(s.key)}
+                disabled={statusUpdating || lead.status === s.key}
                 className={clsx(
                   'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                  lead.status === s
+                  lead.status === s.key
                     ? 'bg-gray-700 text-gray-500 cursor-default'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                 )}
               >
-                {s}
+                {s.label}
               </button>
             ))}
           </div>

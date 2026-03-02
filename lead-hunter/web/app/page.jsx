@@ -85,14 +85,14 @@ export default async function DashboardPage() {
       {/* Conversion funnel */}
       {conversion && (
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">Pipeline de conversion</h2>
+          <h2 className="text-lg font-semibold text-white mb-4">Pipeline de conversión</h2>
           <div className="flex items-center gap-2">
             {Object.entries(conversion).map(([status, count]) => {
               const total = Object.values(conversion).reduce((a, b) => a + b, 0);
               const pct = total > 0 ? ((count / total) * 100).toFixed(0) : 0;
               const labels = {
-                new: 'new', contacted: 'contacted', replied: 'replied',
-                meeting: 'meeting', client: 'client', discarded: 'discarded'
+                new: 'Nuevos', contacted: 'Contactados', replied: 'Respondidos',
+                meeting: 'Reunión', client: 'Clientes', discarded: 'Descartados'
               };
               return (
                 <div key={status} className="flex-1 text-center">

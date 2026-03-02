@@ -11,16 +11,18 @@ export default async function PipelinePage() {
   if (!session) redirect('/login');
 
   const columns = {};
+  const totals = {};
   const statuses = ['new', 'contacted', 'replied', 'meeting', 'client', 'discarded'];
 
   let error = null;
 
   try {
     const results = await Promise.all(
-      statuses.map(s => backendFetch(`/api/leads?status=${s}&limit=200&sort=lead_score&order=DESC`))
+      statuses.map(s => backendFetch(`/api/leads?status=${s}&limit=500&sort=lead_score&order=DESC`))
     );
     statuses.forEach((s, i) => {
       columns[s] = results[i].leads;
+      totals[s] = results[i].pagination?.total ?? results[i].leads.length;
     });
   } catch (err) {
     error = err.message;
@@ -38,7 +40,7 @@ export default async function PipelinePage() {
           <p className="text-red-400">Error: {error}</p>
         </div>
       ) : (
-        <PipelineBoard columns={columns} />
+        <PipelineBoard columns={columns} totals={totals} />
       )}
     </DashboardLayout>
   );

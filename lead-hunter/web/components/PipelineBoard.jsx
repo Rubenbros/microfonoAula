@@ -18,8 +18,9 @@ const tierBadge = {
   cold: 'bg-blue-500/20 text-blue-400',
 };
 
-export default function PipelineBoard({ columns: initialColumns }) {
+export default function PipelineBoard({ columns: initialColumns, totals: initialTotals }) {
   const [columns, setColumns] = useState(initialColumns);
+  const [totals, setTotals] = useState(initialTotals || {});
   const [dragging, setDragging] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
@@ -42,6 +43,11 @@ export default function PipelineBoard({ columns: initialColumns }) {
       updated[toStatus] = [{ ...lead, status: toStatus }, ...prev[toStatus]];
       return updated;
     });
+    setTotals(prev => ({
+      ...prev,
+      [fromStatus]: (prev[fromStatus] || 0) - 1,
+      [toStatus]: (prev[toStatus] || 0) + 1,
+    }));
 
     setDragging(null);
     setErrorMsg(null);
@@ -55,7 +61,21 @@ export default function PipelineBoard({ columns: initialColumns }) {
       });
       if (!res.ok) throw new Error('Error al mover lead');
     } catch (err) {
-      setColumns(initialColumns);
+      // Revert only this failed drag, not all previous successful ones
+      setColumns(prev => {
+        const reverted = { ...prev };
+        const movedLead = prev[toStatus].find(l => l.id === lead.id);
+        if (movedLead) {
+          reverted[toStatus] = prev[toStatus].filter(l => l.id !== lead.id);
+          reverted[fromStatus] = [{ ...movedLead, status: fromStatus }, ...prev[fromStatus]];
+        }
+        return reverted;
+      });
+      setTotals(prev => ({
+        ...prev,
+        [fromStatus]: (prev[fromStatus] || 0) + 1,
+        [toStatus]: (prev[toStatus] || 0) - 1,
+      }));
       setErrorMsg(err.message || 'Error al actualizar estado');
       setTimeout(() => setErrorMsg(null), 4000);
     }
@@ -80,7 +100,7 @@ export default function PipelineBoard({ columns: initialColumns }) {
                 {config.emoji} {config.label}
               </span>
               <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">
-                {columns[status]?.length || 0}
+                {totals[status] ?? columns[status]?.length ?? 0}
               </span>
             </div>
           </div>
