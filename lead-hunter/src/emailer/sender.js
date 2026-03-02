@@ -3,7 +3,7 @@ import Handlebars from 'handlebars';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { getDb, insertEmailSent, getEmailsSentToday, getLeadsToContact, getLeadsForFollowUp, getSetting } from '../db/database.js';
+import { getDb, insertEmailSent, updateEmailStatus, getEmailsSentToday, getLeadsToContact, getLeadsForFollowUp, getSetting } from '../db/database.js';
 import { createLogger } from '../logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -127,10 +127,22 @@ export async function sendEmail(lead, step = 1) {
         3: `Última propuesta para ${lead.name}`,
       };
 
-  const html = template(data);
   const subject = subjects[step];
 
+  let emailId = null;
   try {
+    // Registrar en BD primero para obtener el ID del email
+    const result = insertEmailSent(lead.id, step, templateName, subject, lead.email);
+    emailId = result.lastInsertRowid;
+
+    // Generar tracking pixel URL si está configurada
+    const trackerBaseUrl = process.env.TRACKER_BASE_URL;
+    if (trackerBaseUrl) {
+      data.trackingPixelUrl = `${trackerBaseUrl}/track/${emailId}`;
+    }
+
+    const html = template(data);
+
     const transporter = createTransporter();
 
     await transporter.sendMail({
@@ -143,9 +155,6 @@ export async function sendEmail(lead, step = 1) {
       },
     });
 
-    // Registrar en BD
-    insertEmailSent(lead.id, step, templateName, subject, lead.email);
-
     // Actualizar estado del lead
     if (lead.status === 'new') {
       const db = getDb();
@@ -157,6 +166,10 @@ export async function sendEmail(lead, step = 1) {
 
   } catch (err) {
     log.error(`Error enviando email a ${lead.name.slice(0, 50)}: ${err.message}`);
+    // Marcar el email como fallido en BD
+    if (emailId) {
+      try { updateEmailStatus(emailId, 'failed'); } catch {}
+    }
     return { success: false, reason: err.message };
   }
 }

@@ -108,6 +108,18 @@ export function setupDatabase() {
       value TEXT
     );
 
+    -- Tracking de visitas a demos
+    CREATE TABLE IF NOT EXISTS demo_visits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lead_id INTEGER NOT NULL,
+      demo_slug TEXT NOT NULL,
+      visit_count INTEGER DEFAULT 0,
+      last_visit_at TEXT,
+      first_visit_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (lead_id) REFERENCES leads(id)
+    );
+
     -- Índices para búsquedas rápidas
     CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
     CREATE INDEX IF NOT EXISTS idx_leads_score ON leads(lead_score DESC);
@@ -118,6 +130,8 @@ export function setupDatabase() {
     CREATE INDEX IF NOT EXISTS idx_leads_source ON leads(source);
     CREATE INDEX IF NOT EXISTS idx_leads_service_type ON leads(service_type);
     CREATE INDEX IF NOT EXISTS idx_emails_lead ON emails_sent(lead_id);
+    CREATE INDEX IF NOT EXISTS idx_demo_visits_lead ON demo_visits(lead_id);
+    CREATE INDEX IF NOT EXISTS idx_demo_visits_slug ON demo_visits(demo_slug);
   `);
 
   // Índice único para leads online (evitar duplicados por source_id)
@@ -175,6 +189,15 @@ function migrateDatabase(db) {
   }
   if (!scanColumns.includes('source')) {
     try { db.exec("ALTER TABLE scans ADD COLUMN source TEXT DEFAULT 'google_maps'"); } catch {}
+  }
+
+  // Migrar tabla emails_sent
+  const emailColumns = db.prepare("PRAGMA table_info(emails_sent)").all().map(c => c.name);
+  if (!emailColumns.includes('opened_at')) {
+    try {
+      db.exec("ALTER TABLE emails_sent ADD COLUMN opened_at DATETIME");
+      console.log("[DB] Migración: columna 'opened_at' añadida a emails_sent");
+    } catch {}
   }
 }
 
@@ -307,6 +330,11 @@ export function insertEmailSent(leadId, step, template, subject, toEmail) {
   return stmt.run(leadId, step, template, subject, toEmail);
 }
 
+export function updateEmailStatus(emailId, status) {
+  const db = getDb();
+  db.prepare('UPDATE emails_sent SET status = ? WHERE id = ?').run(status, emailId);
+}
+
 export function getEmailsSentToday() {
   const db = getDb();
   return db.prepare(`
@@ -337,6 +365,44 @@ export function getLeadsForFollowUp(step, daysAfter) {
   `).all(step, daysAfter, step);
 }
 
+// === QUERIES DE TRACKING ===
+
+export function markEmailOpened(emailId) {
+  const db = getDb();
+  const email = db.prepare('SELECT id, opened_at FROM emails_sent WHERE id = ?').get(emailId);
+
+  if (!email) {
+    return { updated: false, alreadyOpened: false };
+  }
+
+  if (email.opened_at) {
+    return { updated: false, alreadyOpened: true };
+  }
+
+  db.prepare('UPDATE emails_sent SET opened_at = CURRENT_TIMESTAMP WHERE id = ?').run(emailId);
+  return { updated: true, alreadyOpened: false };
+}
+
+export function getEmailWithLead(emailId) {
+  const db = getDb();
+  return db.prepare(`
+    SELECT e.*, l.name as lead_name, l.sector, l.zone, l.lead_type
+    FROM emails_sent e
+    JOIN leads l ON e.lead_id = l.id
+    WHERE e.id = ?
+  `).get(emailId);
+}
+
+export function getEmailOpenStats() {
+  const db = getDb();
+  const total = db.prepare('SELECT COUNT(*) as c FROM emails_sent').get().c;
+  const opened = db.prepare('SELECT COUNT(*) as c FROM emails_sent WHERE opened_at IS NOT NULL').get().c;
+  const openedToday = db.prepare("SELECT COUNT(*) as c FROM emails_sent WHERE DATE(opened_at) = DATE('now')").get().c;
+  const rate = total > 0 ? ((opened / total) * 100).toFixed(1) : '0.0';
+
+  return { total, opened, openedToday, rate };
+}
+
 // === QUERIES DE SCANS ===
 
 export function insertScan(zone, sector, resultsCount, newLeadsCount, scanType = 'local', source = 'google_maps') {
@@ -359,6 +425,55 @@ export function getSetting(key, defaultValue = null) {
 export function setSetting(key, value) {
   const db = getDb();
   db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, String(value));
+}
+
+// === QUERIES DE DEMO VISITS ===
+
+export function getLeadsWithDemos() {
+  const db = getDb();
+  return db.prepare(`
+    SELECT id, name, sector, zone, demo_url, demo_slug, status, lead_score, lead_tier
+    FROM leads WHERE demo_slug IS NOT NULL AND demo_slug != ''
+  `).all();
+}
+
+export function getDemoVisit(leadId) {
+  const db = getDb();
+  return db.prepare('SELECT * FROM demo_visits WHERE lead_id = ?').get(leadId);
+}
+
+export function upsertDemoVisit(leadId, demoSlug, visitCount, lastVisitAt) {
+  const db = getDb();
+  const existing = db.prepare('SELECT * FROM demo_visits WHERE lead_id = ?').get(leadId);
+
+  if (existing) {
+    db.prepare(`
+      UPDATE demo_visits SET
+        visit_count = ?, last_visit_at = ?
+      WHERE lead_id = ?
+    `).run(visitCount, lastVisitAt, leadId);
+  } else {
+    db.prepare(`
+      INSERT INTO demo_visits (lead_id, demo_slug, visit_count, last_visit_at, first_visit_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(leadId, demoSlug, visitCount, lastVisitAt, lastVisitAt);
+  }
+}
+
+export function getDemoVisitStats() {
+  const db = getDb();
+  return {
+    totalDemos: db.prepare('SELECT COUNT(*) as c FROM leads WHERE demo_slug IS NOT NULL').get().c,
+    demosVisited: db.prepare('SELECT COUNT(*) as c FROM demo_visits WHERE visit_count > 0').get().c,
+    totalVisits: db.prepare('SELECT COALESCE(SUM(visit_count), 0) as c FROM demo_visits').get().c,
+    recentVisits: db.prepare(`
+      SELECT dv.*, l.name, l.sector, l.zone
+      FROM demo_visits dv
+      JOIN leads l ON l.id = dv.lead_id
+      WHERE dv.visit_count > 0
+      ORDER BY dv.last_visit_at DESC LIMIT 5
+    `).all(),
+  };
 }
 
 // Setup si se ejecuta directamente

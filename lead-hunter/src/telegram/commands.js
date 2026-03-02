@@ -1,5 +1,5 @@
 import { Bot, InlineKeyboard } from 'grammy';
-import { getLeadStats, getLeadsByTier, getLeadById, updateLeadStatus, getDb, getOnlineLeads, getSetting, setSetting, getLastEmailForLead } from '../db/database.js';
+import { getLeadStats, getLeadsByTier, getLeadById, updateLeadStatus, getDb, getOnlineLeads, getSetting, setSetting, getLastEmailForLead, getDemoVisitStats, getLeadsWithDemos, getDemoVisit, getEmailOpenStats } from '../db/database.js';
 import { sendEmail } from '../emailer/sender.js';
 import { scanGoogleMaps, saveResults } from '../scraper/maps.js';
 import { scanAllReddit } from '../scraper/reddit.js';
@@ -41,7 +41,8 @@ export function createBot() {
       '📊 /stats — Estadísticas\n' +
       '📈 /pipeline — Pipeline de ventas\n' +
       '🔄 /analyze — Puntuar leads nuevos\n' +
-      '📡 /sources — Desglose por fuente',
+      '📡 /sources — Desglose por fuente\n' +
+      '🎨 /demos — Estado de demos y visitas',
       { parse_mode: 'Markdown' }
     );
   });
@@ -61,6 +62,29 @@ export function createBot() {
       }
     }
 
+    // Stats de demos
+    let demoInfo = '';
+    try {
+      const demoStats = getDemoVisitStats();
+      if (demoStats.totalDemos > 0) {
+        demoInfo = `\n*Demos:*\n` +
+          `🎨 Registradas: ${demoStats.totalDemos}\n` +
+          `👀 Visitadas: ${demoStats.demosVisited}\n` +
+          `📊 Visitas totales: ${demoStats.totalVisits}\n`;
+      }
+    } catch { /* tabla puede no existir aún */ }
+
+    // Stats de apertura de emails
+    let openInfo = '';
+    try {
+      const openStats = getEmailOpenStats();
+      if (openStats.total > 0) {
+        openInfo = `\n*Aperturas:*\n` +
+          `📬 Abiertos: ${openStats.opened}/${openStats.total} (${openStats.rate}%)\n` +
+          `📬 Abiertos hoy: ${openStats.openedToday}\n`;
+      }
+    } catch { /* por si acaso */ }
+
     await ctx.reply(
       '📊 *Estadísticas Lead Hunter*\n\n' +
       `Total leads: *${stats.total}*\n` +
@@ -73,6 +97,8 @@ export function createBot() {
       `💬 Respondidos: *${stats.replied}*\n` +
       `🤝 Reuniones: *${stats.meetings}*\n` +
       `✅ Clientes: *${stats.clients}*` +
+      openInfo +
+      demoInfo +
       sourceInfo,
       { parse_mode: 'Markdown' }
     );
@@ -183,6 +209,51 @@ export function createBot() {
     msg += `\n*Total:* ${stats.total} leads`;
 
     await ctx.reply(msg, { parse_mode: 'Markdown' });
+  });
+
+  // /demos — Ver estado de demos y visitas
+  bot.command('demos', async (ctx) => {
+    try {
+      const demoStats = getDemoVisitStats();
+      const leadsWithDemos = getLeadsWithDemos();
+
+      if (leadsWithDemos.length === 0) {
+        return ctx.reply('No hay demos registradas todavía.');
+      }
+
+      let msg = '🎨 *Demos personalizadas*\n\n' +
+        `Total: *${demoStats.totalDemos}* demos\n` +
+        `👀 Visitadas: *${demoStats.demosVisited}*\n` +
+        `📊 Visitas totales: *${demoStats.totalVisits}*\n\n`;
+
+      // Últimas visitas
+      if (demoStats.recentVisits.length > 0) {
+        msg += '*Últimas visitas:*\n';
+        for (const v of demoStats.recentVisits) {
+          const timeAgo = getTimeAgo(v.last_visit_at);
+          msg += `👀 *${v.name}* — ${v.visit_count} visitas (${timeAgo})\n`;
+        }
+        msg += '\n';
+      }
+
+      // Demos sin visitas
+      const noVisits = leadsWithDemos.filter(l => {
+        const visit = getDemoVisit(l.id);
+        return !visit || visit.visit_count === 0;
+      });
+
+      if (noVisits.length > 0) {
+        msg += `*Sin visitas (${noVisits.length}):*\n`;
+        for (const l of noVisits.slice(0, 10)) {
+          msg += `🎨 ${l.name} — ${l.demo_slug}\n`;
+        }
+        if (noVisits.length > 10) msg += `  ... y ${noVisits.length - 10} más\n`;
+      }
+
+      await ctx.reply(msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
   });
 
   // /scanreddit — Escanear Reddit
@@ -408,8 +479,22 @@ export function createBot() {
     if (emails.length > 0) {
       msg += `\n*Emails enviados (${emails.length}):*\n`;
       for (const e of emails) {
-        msg += `  ✉️ Paso ${e.sequence_step} — ${e.sent_at.slice(0, 10)}\n`;
+        const openedIcon = e.opened_at ? '👁️' : '—';
+        const statusIcon = e.status === 'failed' ? '❌' : '✅';
+        msg += `  ${statusIcon} Paso ${e.sequence_step} — ${e.sent_at.slice(0, 10)} ${openedIcon}\n`;
       }
+    }
+
+    // Info de demo
+    if (lead.demo_slug) {
+      try {
+        const visit = getDemoVisit(lead.id);
+        if (visit && visit.visit_count > 0) {
+          msg += `\n👀 *Demo visitada:* ${visit.visit_count} veces (última: ${getTimeAgo(visit.last_visit_at)})\n`;
+        } else {
+          msg += `\n🎨 Demo registrada (sin visitas aún)\n`;
+        }
+      } catch {}
     }
 
     const keyboard = new InlineKeyboard();
@@ -573,13 +658,47 @@ export async function sendMorningSummary() {
   const db = getDb();
   const newToday = db.prepare("SELECT COUNT(*) as c FROM leads WHERE DATE(found_at) = DATE('now')").get().c;
 
-  const msg =
+  let msg =
     '☀️ *Resumen matutino Lead Hunter*\n\n' +
     `Leads nuevos hoy: ${newToday}\n` +
     `Total: ${stats.total} (📍${stats.totalLocal} locales, 🌐${stats.totalOnline} online)\n` +
     `🔥 Calientes: ${stats.hot} (📍${stats.hotLocal} / 🌐${stats.hotOnline})\n` +
     `Pendientes: ${stats.total - stats.contacted - stats.clients}\n` +
     `Respondidos: ${stats.replied} | Clientes: ${stats.clients}`;
+
+  // Stats de aperturas
+  try {
+    const openStats = getEmailOpenStats();
+    if (openStats.total > 0) {
+      msg += `\n\n📬 Aperturas: ${openStats.opened}/${openStats.total} (${openStats.rate}%)`;
+    }
+  } catch {}
+
+  // Stats de demos
+  try {
+    const demoStats = getDemoVisitStats();
+    if (demoStats.totalVisits > 0) {
+      msg += `\n🎨 Demos visitadas: ${demoStats.demosVisited}/${demoStats.totalDemos} (${demoStats.totalVisits} visitas)`;
+    }
+  } catch {}
+
+  await notifyAdmin(msg);
+}
+
+/**
+ * Notifica al admin que un lead visitó su demo personalizada
+ */
+export async function notifyDemoVisit(lead, visitData) {
+  const timeAgo = visitData.lastVisitAt ? getTimeAgo(visitData.lastVisitAt) : '?';
+
+  const msg =
+    '👀 *Visita a demo!*\n\n' +
+    `🏪 *${lead.name}* ha visitado su demo\n` +
+    `🔗 ${lead.demo_url || `t800labs.com/demo/${lead.demo_slug}`}\n` +
+    `📊 Visitas totales: *${visitData.visitCount}*\n` +
+    `🆕 Nuevas: ${visitData.newVisits}\n` +
+    `🕐 ${timeAgo}\n` +
+    `📋 /detail ${lead.id}`;
 
   await notifyAdmin(msg);
 }
@@ -592,11 +711,31 @@ export async function sendEveningSummary() {
   const emailsToday = db.prepare("SELECT COUNT(*) as c FROM emails_sent WHERE DATE(sent_at) = DATE('now')").get().c;
   const newToday = db.prepare("SELECT COUNT(*) as c FROM leads WHERE DATE(found_at) = DATE('now')").get().c;
 
-  const msg =
+  let msg =
     '🌙 *Resumen del día*\n\n' +
     `📧 Emails enviados: ${emailsToday}\n` +
-    `🆕 Leads nuevos: ${newToday}\n` +
-    `Mañana seguimos. Buenas noches.`;
+    `🆕 Leads nuevos: ${newToday}`;
+
+  // Aperturas de hoy
+  try {
+    const openStats = getEmailOpenStats();
+    if (openStats.openedToday > 0) {
+      msg += `\n📬 Emails abiertos hoy: ${openStats.openedToday}`;
+    }
+  } catch {}
+
+  // Visitas a demos
+  try {
+    const demoStats = getDemoVisitStats();
+    if (demoStats.recentVisits.length > 0) {
+      msg += '\n\n*Visitas a demos hoy:*';
+      for (const v of demoStats.recentVisits.slice(0, 3)) {
+        msg += `\n👀 ${v.name} — ${v.visit_count} visitas`;
+      }
+    }
+  } catch {}
+
+  msg += '\n\nMañana seguimos. Buenas noches.';
 
   await notifyAdmin(msg);
 }

@@ -7,6 +7,8 @@ import { scanAllReddit } from './scraper/reddit.js';
 import { scanGoogleLinkedIn } from './scraper/google-linkedin.js';
 import { scoreNewLeads } from './analyzer/scorer.js';
 import { runEmailSequences } from './emailer/sender.js';
+import { startTracker } from './emailer/tracker.js';
+import { checkDemoVisits } from './demo/visits.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -20,6 +22,22 @@ const sectorsConfig = JSON.parse(
   readFileSync(join(__dirname, '../config/sectors.json'), 'utf-8')
 );
 
+// Evitar que el proceso muera por errores no manejados (ej: 409 de Telegram)
+process.on('uncaughtException', (err) => {
+  if (err.message?.includes('409') || err.description?.includes('409')) {
+    log.warn('Bot: conflicto 409 (uncaught) — cron jobs siguen activos.');
+  } else {
+    log.error(`Error no capturado: ${err.message}`);
+  }
+});
+process.on('unhandledRejection', (err) => {
+  if (err?.message?.includes('409') || err?.description?.includes('409')) {
+    log.warn('Bot: conflicto 409 (rejection) — cron jobs siguen activos.');
+  } else {
+    log.error(`Rejection no manejada: ${err?.message || err}`);
+  }
+});
+
 async function main() {
   log.info('=== Lead Hunter iniciando ===');
 
@@ -29,11 +47,29 @@ async function main() {
 
   // 2. Iniciar bot de Telegram
   const bot = createBot();
-  bot.start();
+
+  // Limpiar sesiones anteriores
+  try {
+    await bot.api.deleteWebhook({ drop_pending_updates: true });
+  } catch {}
+
+  // Arrancar bot (no bloquea, corre en background)
+  bot.start({
+    drop_pending_updates: true,
+    onStart: () => log.info('Bot de Telegram conectado'),
+  });
   log.info('Bot de Telegram iniciado');
 
+  // 3. Iniciar servidor de tracking de emails
+  startTracker();
+  log.info('Tracker de emails iniciado');
+
   // Notificar inicio
-  await notifyAdmin('🚀 *Lead Hunter iniciado*\n\nSistema de captación automática activo.\n📍 Google Maps + 🌐 Reddit');
+  try {
+    await notifyAdmin('🚀 *Lead Hunter iniciado*\n\nSistema de captación automática activo.\n📍 Google Maps + 🌐 Reddit');
+  } catch (err) {
+    log.warn(`No se pudo enviar notificación de inicio: ${err.message}`);
+  }
 
   // === CRON JOBS ===
 
@@ -145,6 +181,19 @@ async function main() {
     }
   });
 
+  // Cada 15 min (9:00-20:00 L-V) — Chequeo de visitas a demos
+  cron.schedule('*/15 9-19 * * 1-5', async () => {
+    log.info('Cron: Chequeo de visitas a demos');
+    try {
+      const result = await checkDemoVisits();
+      if (result.newVisits > 0) {
+        log.info(`Visitas nuevas detectadas: ${result.newVisits}`);
+      }
+    } catch (err) {
+      log.error(`Error en chequeo de visitas: ${err.message}`);
+    }
+  });
+
   // 20:00 — Resumen nocturno
   cron.schedule('0 20 * * 1-5', async () => {
     await sendEveningSummary();
@@ -159,6 +208,7 @@ async function main() {
   log.info('  09:30-13:30 L-V — Emails');
   log.info('  15:00 diario — Reddit (tarde)');
   log.info('  15:30 diario — Scoring tarde');
+  log.info('  */15 9-19 L-V — Chequeo visitas demos');
   log.info('  20:00 L-V — Resumen nocturno');
   log.info('=== Lead Hunter listo ===');
 }
