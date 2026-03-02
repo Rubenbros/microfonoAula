@@ -9,6 +9,7 @@ import { scoreNewLeads } from './analyzer/scorer.js';
 import { runEmailSequences } from './emailer/sender.js';
 import { startTracker } from './emailer/tracker.js';
 import { checkDemoVisits } from './demo/visits.js';
+import { startApiServer } from './api/server.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -63,6 +64,10 @@ async function main() {
   // 3. Iniciar servidor de tracking de emails
   startTracker();
   log.info('Tracker de emails iniciado');
+
+  // 4. Iniciar API server para panel web
+  startApiServer();
+  log.info('API server iniciado');
 
   // Notificar inicio
   try {
