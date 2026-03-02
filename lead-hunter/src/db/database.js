@@ -132,6 +132,27 @@ export function setupDatabase() {
     CREATE INDEX IF NOT EXISTS idx_emails_lead ON emails_sent(lead_id);
     CREATE INDEX IF NOT EXISTS idx_demo_visits_lead ON demo_visits(lead_id);
     CREATE INDEX IF NOT EXISTS idx_demo_visits_slug ON demo_visits(demo_slug);
+
+    -- Tareas de automatizaciones (desglose de ideas en pasos ejecutables)
+    CREATE TABLE IF NOT EXISTS automation_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      automation_id INTEGER NOT NULL,
+      step_number INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      task_type TEXT DEFAULT 'general',
+      status TEXT DEFAULT 'pending',
+      result TEXT,
+      error TEXT,
+      started_at TEXT,
+      completed_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (automation_id) REFERENCES automations(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_automation ON automation_tasks(automation_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON automation_tasks(status);
   `);
 
   // Índice único para leads online (evitar duplicados por source_id)
@@ -474,6 +495,57 @@ export function getDemoVisitStats() {
       ORDER BY dv.last_visit_at DESC LIMIT 5
     `).all(),
   };
+}
+
+// === QUERIES DE AUTOMATION TASKS ===
+
+export function getTasksByAutomation(automationId) {
+  const db = getDb();
+  return db.prepare(
+    'SELECT * FROM automation_tasks WHERE automation_id = ? ORDER BY step_number ASC'
+  ).all(automationId);
+}
+
+export function getTaskById(taskId) {
+  const db = getDb();
+  return db.prepare('SELECT * FROM automation_tasks WHERE id = ?').get(taskId);
+}
+
+export function insertTask(task) {
+  const db = getDb();
+  return db.prepare(`
+    INSERT INTO automation_tasks (automation_id, step_number, title, description, task_type)
+    VALUES (@automation_id, @step_number, @title, @description, @task_type)
+  `).run(task);
+}
+
+export function updateTaskStatus(taskId, status, result = null, error = null) {
+  const db = getDb();
+  const updates = ['status = ?', "updated_at = datetime('now')"];
+  const params = [status];
+
+  if (status === 'running') {
+    updates.push("started_at = datetime('now')");
+  }
+  if (status === 'completed' || status === 'failed') {
+    updates.push("completed_at = datetime('now')");
+  }
+  if (result !== null) {
+    updates.push('result = ?');
+    params.push(result);
+  }
+  if (error !== null) {
+    updates.push('error = ?');
+    params.push(error);
+  }
+
+  params.push(taskId);
+  db.prepare(`UPDATE automation_tasks SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+}
+
+export function deleteTasksByAutomation(automationId) {
+  const db = getDb();
+  db.prepare('DELETE FROM automation_tasks WHERE automation_id = ?').run(automationId);
 }
 
 // Setup si se ejecuta directamente

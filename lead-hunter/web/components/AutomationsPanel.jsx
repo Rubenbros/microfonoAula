@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { clsx } from 'clsx';
+import Link from 'next/link';
 import {
-  Sparkles, TrendingUp, Clock, Zap,
+  Sparkles, TrendingUp, Clock, Zap, Play,
   ChevronDown, ChevronUp, Trash2, ThumbsDown, X
 } from 'lucide-react';
 
@@ -258,6 +259,15 @@ export default function AutomationsPanel({ data: initial }) {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 pt-3 border-t border-gray-800">
+                    <Link
+                      href={`/automations/${auto.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <Play size={14} />
+                      Ejecutar
+                    </Link>
+
                     <select
                       value={auto.status}
                       onChange={(e) => updateStatus(auto.id, e.target.value)}
