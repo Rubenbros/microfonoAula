@@ -1,20 +1,15 @@
-import { execFile } from 'child_process';
+import { spawn } from 'child_process';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('claude-ai');
 
 const CLAUDE_PATH = process.env.CLAUDE_PATH || 'claude';
-const DEFAULT_TIMEOUT = 120000; // 2 minutos
+const DEFAULT_TIMEOUT = 300000; // 5 minutos (opus es más lento)
 
 /**
  * Ejecuta un prompt con Claude Code CLI en modo headless (-p)
  * Usa la suscripción Max del usuario, sin coste de API
- *
- * @param {string} prompt - El prompt a enviar
- * @param {object} options - Opciones
- * @param {number} options.timeout - Timeout en ms (default 120s)
- * @param {number} options.maxTurns - Turnos máximos (default 1)
- * @returns {Promise<string>} Respuesta de Claude como texto
+ * Pasa el prompt por stdin para evitar problemas con prompts largos
  */
 export async function askClaude(prompt, options = {}) {
   const { timeout = DEFAULT_TIMEOUT, maxTurns = 1 } = options;
@@ -23,37 +18,48 @@ export async function askClaude(prompt, options = {}) {
 
   return new Promise((resolve, reject) => {
     const args = [
-      '-p', prompt,
+      '-p', '-',
       '--output-format', 'text',
       '--max-turns', String(maxTurns),
-      '--no-session-persistence',
       '--model', 'opus',
     ];
 
     // Quitar variables de Claude Code del entorno para evitar error de nested sessions
     const cleanEnv = { ...process.env };
-    delete cleanEnv.CLAUDECODE;
-    delete cleanEnv.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS;
-    delete cleanEnv.CLAUDE_CODE_ENTRYPOINT;
-    // Eliminar cualquier otra variable CLAUDE_CODE_*
     for (const key of Object.keys(cleanEnv)) {
       if (key.startsWith('CLAUDE_CODE_') || key === 'CLAUDECODE') {
         delete cleanEnv[key];
       }
     }
 
-    const child = execFile(CLAUDE_PATH, args, {
-      timeout,
-      maxBuffer: 1024 * 1024, // 1MB
+    let stdout = '';
+    let stderr = '';
+
+    const child = spawn(CLAUDE_PATH, args, {
       env: cleanEnv,
-    }, (error, stdout, stderr) => {
-      if (error) {
-        if (error.killed) {
-          log.error('Claude CLI timeout');
-          return reject(new Error('Claude CLI timeout — la petición tardó demasiado'));
-        }
-        log.error(`Claude CLI error: ${error.message}`);
-        return reject(new Error(`Claude CLI error: ${error.message}`));
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    child.stdout.on('data', (data) => { stdout += data.toString(); });
+    child.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    // Enviar prompt por stdin y cerrar
+    child.stdin.write(prompt);
+    child.stdin.end();
+
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+      log.error('Claude CLI timeout');
+      reject(new Error('Claude CLI timeout — la petición tardó demasiado'));
+    }, timeout);
+
+    child.on('close', (code) => {
+      clearTimeout(timer);
+
+      if (code !== 0) {
+        const errMsg = stderr.trim() || `Exit code ${code}`;
+        log.error(`Claude CLI error (code ${code}): ${errMsg.substring(0, 200)}`);
+        return reject(new Error(`Claude CLI error: ${errMsg}`));
       }
 
       const result = stdout.trim();
@@ -64,6 +70,12 @@ export async function askClaude(prompt, options = {}) {
 
       log.info(`Respuesta recibida (${result.length} chars)`);
       resolve(result);
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      log.error(`Claude CLI spawn error: ${err.message}`);
+      reject(new Error(`Claude CLI error: ${err.message}`));
     });
   });
 }
