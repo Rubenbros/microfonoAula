@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { getDb } from '../../db/database.js';
 import { scanGoogleMaps, saveResults } from '../../scraper/maps.js';
 import { scanAllReddit, saveRedditResults } from '../../scraper/reddit.js';
+import { scanAllFiverr, saveFiverrResults } from '../../scraper/fiverr.js';
 import { scanGoogleLinkedIn } from '../../scraper/google-linkedin.js';
 import { scoreNewLeads } from '../../analyzer/scorer.js';
 import {
@@ -134,6 +135,25 @@ router.post('/linkedin', (req, res) => {
       failJob(job.id, err);
     } finally {
       unlockPlaywright();
+    }
+  })();
+});
+
+// POST /api/scans/fiverr — Lanzar scan Fiverr
+router.post('/fiverr', (req, res) => {
+  const job = createJob('fiverr', {});
+  res.status(202).json({ jobId: job.id, message: 'Scan Fiverr iniciado' });
+
+  (async () => {
+    try {
+      updateJobProgress(job.id, 'Escaneando gigs en Fiverr...');
+      const result = await scanAllFiverr();
+      completeJob(job.id, {
+        found: result.total,
+        new: result.new,
+      });
+    } catch (err) {
+      failJob(job.id, err);
     }
   })();
 });

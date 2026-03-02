@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Map, MessageSquare, Linkedin, BarChart3, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Map, MessageSquare, Linkedin, BarChart3, ShoppingBag, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 const typeLabels = {
   maps: 'Google Maps',
   reddit: 'Reddit',
+  fiverr: 'Fiverr',
   linkedin: 'LinkedIn',
   score: 'Scoring',
 };
@@ -13,6 +14,7 @@ const typeLabels = {
 const typeColors = {
   maps: 'blue',
   reddit: 'orange',
+  fiverr: 'emerald',
   linkedin: 'sky',
   score: 'green',
 };
@@ -20,6 +22,7 @@ const typeColors = {
 const colorMap = {
   blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400', hover: 'hover:bg-blue-500/20', ring: 'ring-blue-500/30' },
   orange: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400', hover: 'hover:bg-orange-500/20', ring: 'ring-orange-500/30' },
+  emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', hover: 'hover:bg-emerald-500/20', ring: 'ring-emerald-500/30' },
   sky: { bg: 'bg-sky-500/10', border: 'border-sky-500/20', text: 'text-sky-400', hover: 'hover:bg-sky-500/20', ring: 'ring-sky-500/30' },
   green: { bg: 'bg-green-500/10', border: 'border-green-500/20', text: 'text-green-400', hover: 'hover:bg-green-500/20', ring: 'ring-green-500/30' },
 };
@@ -98,6 +101,7 @@ export default function ScanPanel({ config, initialHistory }) {
   const [scanState, setScanState] = useState({
     maps: { loading: false, result: null, error: null, jobId: null },
     reddit: { loading: false, result: null, error: null, jobId: null },
+    fiverr: { loading: false, result: null, error: null, jobId: null },
     linkedin: { loading: false, result: null, error: null, jobId: null },
     score: { loading: false, result: null, error: null, jobId: null },
   });
@@ -246,6 +250,18 @@ export default function ScanPanel({ config, initialHistory }) {
           loading={scanState.reddit.loading}
           result={scanState.reddit.result}
           error={scanState.reddit.error}
+        />
+
+        {/* Fiverr */}
+        <ScanCard
+          type="fiverr"
+          icon={ShoppingBag}
+          title="Fiverr"
+          description="Escanea gigs y demanda en Fiverr"
+          onLaunch={() => launchScan('fiverr')}
+          loading={scanState.fiverr.loading}
+          result={scanState.fiverr.result}
+          error={scanState.fiverr.error}
         />
 
         {/* LinkedIn */}

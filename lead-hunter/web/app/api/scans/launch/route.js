@@ -11,6 +11,7 @@ export async function POST(request) {
   const endpoints = {
     maps: '/api/scans/maps',
     reddit: '/api/scans/reddit',
+    fiverr: '/api/scans/fiverr',
     linkedin: '/api/scans/linkedin',
     score: '/api/scans/score',
   };
