@@ -17,7 +17,7 @@ export default async function PipelinePage() {
 
   try {
     const results = await Promise.all(
-      statuses.map(s => backendFetch(`/api/leads?status=${s}&limit=50&sort=lead_score&order=DESC`))
+      statuses.map(s => backendFetch(`/api/leads?status=${s}&limit=200&sort=lead_score&order=DESC`))
     );
     statuses.forEach((s, i) => {
       columns[s] = results[i].leads;

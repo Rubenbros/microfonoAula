@@ -156,7 +156,7 @@ export default function LeadTable({ leads, pagination, filters }) {
       {/* Paginacion */}
       {pagination.pages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm text-gray-400">
-          <span>Pagina {pagination.page} de {pagination.pages}</span>
+          <span>Página {pagination.page} de {pagination.pages}</span>
           <div className="flex gap-2">
             <button
               onClick={() => updateFilter('page', Math.max(1, pagination.page - 1))}

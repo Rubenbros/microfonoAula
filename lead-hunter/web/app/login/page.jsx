@@ -21,7 +21,7 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError('Password incorrecta');
+      setError('Contraseña incorrecta');
       setLoading(false);
     } else {
       router.push('/');
@@ -33,7 +33,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
       <div className="w-full max-w-sm p-8 bg-gray-900 rounded-2xl border border-gray-800">
         <h1 className="text-2xl font-bold text-white mb-1">Lead Hunter</h1>
-        <p className="text-sm text-gray-500 mb-8">T800 Labs — Panel de gestion</p>
+        <p className="text-sm text-gray-500 mb-8">T800 Labs — Panel de gestión</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -41,7 +41,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Contrasena"
+              placeholder="Contraseña"
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               autoFocus
             />

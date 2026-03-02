@@ -24,18 +24,22 @@ export default function LeadDetail({ data }) {
   const [tab, setTab] = useState('Info');
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [generatingProposal, setGeneratingProposal] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
   const { lead, emails, demoVisit, activities, proposals } = data;
 
   async function changeStatus(newStatus) {
     setStatusUpdating(true);
+    setErrorMsg(null);
     try {
-      await fetch(`/api/leads/${lead.id}`, {
+      const res = await fetch(`/api/leads/${lead.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
+      if (!res.ok) throw new Error('Error al actualizar estado');
       window.location.reload();
-    } catch {
+    } catch (err) {
+      setErrorMsg(err.message || 'Error al cambiar estado');
       setStatusUpdating(false);
     }
   }
@@ -62,7 +66,7 @@ export default function LeadDetail({ data }) {
 
           {/* Status buttons */}
           <div className="flex gap-2">
-            {['replied', 'meeting', 'client', 'discarded'].map(s => (
+            {['contacted', 'replied', 'meeting', 'client', 'discarded'].map(s => (
               <button
                 key={s}
                 onClick={() => changeStatus(s)}
@@ -79,6 +83,9 @@ export default function LeadDetail({ data }) {
             ))}
           </div>
         </div>
+        {errorMsg && (
+          <p className="mt-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{errorMsg}</p>
+        )}
       </div>
 
       {/* Tabs */}
@@ -126,7 +133,9 @@ export default function LeadDetail({ data }) {
             )}
             {lead.website && (
               <div className="flex items-center gap-3 text-gray-300">
-                <Globe size={16} className="text-gray-500" />
+                <span className="text-gray-500 flex-shrink-0" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                </span>
                 <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
                   {lead.website}
                 </a>
@@ -135,7 +144,7 @@ export default function LeadDetail({ data }) {
             {lead.rating && (
               <div className="flex items-center gap-3 text-gray-300">
                 <Star size={16} className="text-yellow-500" />
-                <span>{lead.rating} ({lead.review_count || 0} resenas)</span>
+                <span>{lead.rating} ({lead.review_count || 0} reseñas)</span>
               </div>
             )}
             {lead.demo_url && (
@@ -155,23 +164,23 @@ export default function LeadDetail({ data }) {
             {/* Analisis */}
             {lead.lead_type === 'local' && (
               <div className="mt-6 pt-4 border-t border-gray-800">
-                <h3 className="text-sm font-medium text-gray-400 mb-3">Analisis</h3>
+                <h3 className="text-sm font-medium text-gray-400 mb-3">Análisis</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 text-sm">
                     <span className={lead.has_website ? 'text-green-400' : 'text-red-400'}>
-                      {lead.has_website ? 'Si' : 'No'}
+                      {lead.has_website ? 'Sí' : 'No'}
                     </span>
                     <span className="text-gray-300">Tiene web</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className={lead.has_booking_system ? 'text-green-400' : 'text-red-400'}>
-                      {lead.has_booking_system ? 'Si' : 'No'}
+                      {lead.has_booking_system ? 'Sí' : 'No'}
                     </span>
                     <span className="text-gray-300">Reservas online</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className={lead.has_social_media ? 'text-green-400' : 'text-red-400'}>
-                      {lead.has_social_media ? 'Si' : 'No'}
+                      {lead.has_social_media ? 'Sí' : 'No'}
                     </span>
                     <span className="text-gray-300">Redes sociales</span>
                   </div>
@@ -303,14 +312,17 @@ export default function LeadDetail({ data }) {
                 <button
                   onClick={async () => {
                     setGeneratingProposal(true);
+                    setErrorMsg(null);
                     try {
-                      await fetch('/api/proposals/generate', {
+                      const res = await fetch('/api/proposals/generate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ leadId: lead.id }),
                       });
+                      if (!res.ok) throw new Error('Error al generar propuesta');
                       window.location.reload();
-                    } catch {
+                    } catch (err) {
+                      setErrorMsg(err.message || 'Error al generar propuesta');
                       setGeneratingProposal(false);
                     }
                   }}

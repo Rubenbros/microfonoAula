@@ -7,7 +7,7 @@ const columnConfig = {
   new: { label: 'Nuevos', emoji: 'NEW', color: 'border-gray-600' },
   contacted: { label: 'Contactados', emoji: 'ENV', color: 'border-blue-600' },
   replied: { label: 'Respondidos', emoji: 'RSP', color: 'border-green-600' },
-  meeting: { label: 'Reunion', emoji: 'MTG', color: 'border-purple-600' },
+  meeting: { label: 'Reunión', emoji: 'MTG', color: 'border-purple-600' },
   client: { label: 'Clientes', emoji: 'CLI', color: 'border-emerald-600' },
   discarded: { label: 'Descartados', emoji: 'DES', color: 'border-red-600' },
 };
@@ -21,6 +21,7 @@ const tierBadge = {
 export default function PipelineBoard({ columns: initialColumns }) {
   const [columns, setColumns] = useState(initialColumns);
   const [dragging, setDragging] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   function handleDragStart(lead, fromStatus) {
     setDragging({ lead, fromStatus });
@@ -43,21 +44,28 @@ export default function PipelineBoard({ columns: initialColumns }) {
     });
 
     setDragging(null);
+    setErrorMsg(null);
 
     // API call
     try {
-      await fetch(`/api/leads/${lead.id}`, {
+      const res = await fetch(`/api/leads/${lead.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: toStatus }),
       });
-    } catch {
-      // Revert on error
+      if (!res.ok) throw new Error('Error al mover lead');
+    } catch (err) {
       setColumns(initialColumns);
+      setErrorMsg(err.message || 'Error al actualizar estado');
+      setTimeout(() => setErrorMsg(null), 4000);
     }
   }
 
   return (
+    <div>
+      {errorMsg && (
+        <p className="mb-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{errorMsg}</p>
+      )}
     <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '70vh' }}>
       {Object.entries(columnConfig).map(([status, config]) => (
         <div
@@ -99,6 +107,7 @@ export default function PipelineBoard({ columns: initialColumns }) {
           </div>
         </div>
       ))}
+    </div>
     </div>
   );
 }

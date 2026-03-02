@@ -30,9 +30,9 @@ export default async function DashboardPage() {
     return (
       <DashboardLayout>
         <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-6">
-          <h2 className="text-red-400 font-bold text-lg">Error de conexion</h2>
+          <h2 className="text-red-400 font-bold text-lg">Error de conexión</h2>
           <p className="text-red-300/70 mt-2 text-sm">No se puede conectar al backend: {error}</p>
-          <p className="text-red-300/50 mt-1 text-xs">Verifica que el backend este corriendo y BACKEND_URL sea correcto.</p>
+          <p className="text-red-300/50 mt-1 text-xs">Verifica que el backend esté corriendo y BACKEND_URL sea correcto.</p>
         </div>
       </DashboardLayout>
     );
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     <DashboardLayout>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-sm text-gray-500">Resumen de captacion de leads</p>
+        <p className="text-sm text-gray-500">Resumen de captación de leads</p>
       </div>
 
       {/* Stats cards */}
