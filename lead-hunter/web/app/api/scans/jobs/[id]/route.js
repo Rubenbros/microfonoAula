@@ -1,11 +1,11 @@
 import { auth } from '@/lib/auth';
 import { backendFetch } from '@/lib/backend';
 
-export async function POST() {
+export async function GET(request, { params }) {
   const session = await auth();
   if (!session) return Response.json({ error: 'No autorizado' }, { status: 401 });
 
-  // Delegar al backend local que usa Claude Code CLI (cubierto por Max)
-  const data = await backendFetch('/api/ai/ideas', { method: 'POST' });
+  const { id } = await params;
+  const data = await backendFetch(`/api/scans/jobs/${id}`);
   return Response.json(data);
 }

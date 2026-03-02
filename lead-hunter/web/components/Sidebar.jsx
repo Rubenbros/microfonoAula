@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
 import {
-  LayoutDashboard, Users, GitBranch, Lightbulb,
+  LayoutDashboard, Users, GitBranch, Radar, Lightbulb,
   Settings, LogOut
 } from 'lucide-react';
 
@@ -12,6 +12,7 @@ const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/leads', label: 'Leads', icon: Users },
   { href: '/pipeline', label: 'Pipeline', icon: GitBranch },
+  { href: '/scans', label: 'Escáner', icon: Radar },
   { href: '/automations', label: 'Automatizaciones', icon: Lightbulb },
   { href: '/settings', label: 'Ajustes', icon: Settings },
 ];

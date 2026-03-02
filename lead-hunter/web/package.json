@@ -9,7 +9,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.78.0",
     "@tailwindcss/postcss": "^4.2.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.576.0",

@@ -16,9 +16,10 @@ pkill -f "node src/index.js" 2>/dev/null
 pkill -f "cloudflared" 2>/dev/null
 sleep 1
 
-# 2. Arrancar backend
+# 2. Arrancar backend (sin variables de Claude Code para permitir claude -p)
 echo "🔧 Arrancando backend..."
 cd "$PROJECT_DIR"
+unset CLAUDECODE CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS CLAUDE_CODE_ENTRYPOINT 2>/dev/null
 nohup node src/index.js > "$LOG_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 echo "   Backend PID: $BACKEND_PID"

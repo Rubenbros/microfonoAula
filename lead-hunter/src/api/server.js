@@ -8,6 +8,8 @@ import activitiesRouter from './routes/activities.js';
 import proposalsRouter from './routes/proposals.js';
 import automationsRouter from './routes/automations.js';
 import settingsRouter from './routes/settings.js';
+import aiRouter from './routes/ai.js';
+import scansRouter from './routes/scans.js';
 
 const log = createLogger('api');
 
@@ -51,6 +53,8 @@ export function startApiServer() {
   app.use('/api/proposals', proposalsRouter);
   app.use('/api/automations', automationsRouter);
   app.use('/api/settings', settingsRouter);
+  app.use('/api/ai', aiRouter);
+  app.use('/api/scans', scansRouter);
 
   // Error handler global
   app.use((err, req, res, _next) => {
