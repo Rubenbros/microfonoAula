@@ -69,6 +69,29 @@ export async function scanSubreddit(subreddit) {
         if (filter_title && !post.title.includes(filter_title)) return false;
         // Ignorar posts eliminados
         if (post.removed_by_category || post.selftext === '[removed]' || post.selftext === '[deleted]') return false;
+
+        const text = `${post.title} ${post.selftext || ''}`.toLowerCase();
+
+        // Bloquear posts [OFFER] — gente vendiendo servicios, no comprando
+        const offerSignals = ['[offer]', '[selling]', '[o]', 'i will build', 'i can build',
+          'i will create', 'i can create', 'i will develop', 'i can develop',
+          'my services', 'hire me', 'available for work', 'looking for work',
+          'open for projects', 'dm me if you need'];
+        if (offerSignals.some(s => text.includes(s))) return false;
+
+        // Para subreddits sin filter_title, exigir señales de compra/contratación
+        if (!filter_title) {
+          const buyingSignals = ['need a developer', 'need a website', 'need someone to',
+            'looking for a developer', 'looking for someone', 'want to hire',
+            'hiring', 'budget', 'pay someone', 'need help building',
+            'looking to pay', 'need a bot', 'need an app', 'who can build',
+            'recommendations for', 'need a freelancer', 'seeking a developer',
+            'looking for a freelancer', 'need web development', 'how much would it cost',
+            'how much to build', 'need automation', 'need a programmer',
+            'necesito', 'busco desarrollador', 'busco programador', 'presupuesto'];
+          if (!buyingSignals.some(s => text.includes(s))) return false;
+        }
+
         return true;
       });
 
@@ -117,7 +140,7 @@ function detectServiceType(text) {
       return service.type;
     }
   }
-  return 'software'; // por defecto
+  return null; // sin match = no sabemos qué servicio piden
 }
 
 /**
@@ -126,15 +149,15 @@ function detectServiceType(text) {
  */
 function extractBudget(text) {
   const patterns = [
-    // Rango: $500-$1000, 500-1000 USD
+    // Rango explícito: $500-$1000, 500-1000 USD
     /\$\s*([\d,]+)\s*[-–to]+\s*\$?\s*([\d,]+)/i,
     /([\d,]+)\s*[-–to]+\s*([\d,]+)\s*(?:USD|EUR|€|\$|dollars|euros)/i,
-    // Budget/presupuesto: 500
+    // Budget/presupuesto con palabra clave cerca: "budget $500", "presupuesto 500"
     /budget[:\s]+\$?\s*([\d,]+)/i,
     /presupuesto[:\s]+€?\s*([\d,]+)/i,
-    // Solo cantidad: $500, 500€, 500 USD
-    /\$\s*([\d,]+)/,
-    /([\d,]+)\s*(?:USD|EUR|€|dollars|euros)/i,
+    // Cantidades cerca de palabras de pago: "pay $500", "willing to spend $200"
+    /(?:pay|paying|spend|offer|charge|rate|cost|price|willing to pay)[:\s]*\$?\s*([\d,]+)/i,
+    /(?:pagar|cobrar|costar|precio|dispuesto)[:\s]*€?\s*([\d,]+)/i,
   ];
 
   for (const pattern of patterns) {

@@ -97,15 +97,18 @@ export function calculateOnlineScore(lead) {
   }
 
   // === TIPO DE SERVICIO (nuestro fuerte) ===
-  const highValue = ['automation', 'software', 'chatbot', 'bot', 'ai_training'];
-  const mediumValue = ['website', 'ecommerce', 'scraping'];
+  const highValue = ['automation', 'chatbot', 'bot', 'ai_training'];
+  const mediumValue = ['website', 'ecommerce', 'scraping', 'software'];
 
-  if (highValue.includes(lead.service_type)) {
+  if (lead.service_type && highValue.includes(lead.service_type)) {
     score += 20;
     reasons.push(`Servicio alto valor: ${lead.service_type} (+20)`);
-  } else if (mediumValue.includes(lead.service_type)) {
+  } else if (lead.service_type && mediumValue.includes(lead.service_type)) {
     score += 10;
     reasons.push(`Servicio web: ${lead.service_type} (+10)`);
+  } else if (!lead.service_type) {
+    score -= 10;
+    reasons.push('Sin tipo de servicio identificable (-10)');
   }
 
   // === URGENCIA ===
@@ -148,6 +151,31 @@ export function calculateOnlineScore(lead) {
   if (lead.source === 'reddit' && lead.sector === 'r/forhire') {
     score += 5;
     reasons.push('De r/forhire (+5)');
+  }
+
+  // === SEÑALES NEGATIVAS (penalizar posts irrelevantes) ===
+  const title = (lead.name || '').toLowerCase();
+  const desc = (lead.description || '').toLowerCase();
+
+  // Posts de gente ofreciendo servicios (competidores, no clientes)
+  const offerPatterns = /\[offer\]|\[selling\]|\[o\]|i will build|i can build|hire me|my services|available for/i;
+  if (offerPatterns.test(title)) {
+    score -= 30;
+    reasons.push('Post de oferta, no de compra (-30)');
+  }
+
+  // Preguntas genéricas de discusión sin intención de contratar
+  const discussionPatterns = /^(how do i |what do you think|why do |is it worth|should i |does anyone know|what is the best|has anyone|can someone explain)/i;
+  if (discussionPatterns.test(title) && !lead.budget_min) {
+    score -= 15;
+    reasons.push('Pregunta de discusión sin presupuesto (-15)');
+  }
+
+  // Subreddits de baja calidad para nuestro caso (discusión, no contratación)
+  const lowQualitySubs = ['r/smallbusiness', 'r/webdev', 'r/Entrepreneur', 'r/startups'];
+  if (lowQualitySubs.includes(lead.sector) && !lead.budget_min) {
+    score -= 10;
+    reasons.push(`Sub de discusión sin presupuesto: ${lead.sector} (-10)`);
   }
 
   score = Math.max(0, Math.min(100, score));
