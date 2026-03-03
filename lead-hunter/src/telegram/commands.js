@@ -1,5 +1,5 @@
 import { Bot, InlineKeyboard } from 'grammy';
-import { getLeadStats, getLeadsByTier, getLeadById, updateLeadStatus, getDb, getOnlineLeads, getSetting, setSetting, getLastEmailForLead, getDemoVisitStats, getLeadsWithDemos, getDemoVisit, getEmailOpenStats } from '../db/database.js';
+import { getLeadStats, getLeadsByTier, getLeadById, updateLeadStatus, getDb, getOnlineLeads, getSetting, setSetting, getLastEmailForLead, getDemoVisitStats, getLeadsWithDemos, getDemoVisit, getEmailOpenStats, getFreelanceStats, getFreelanceOpportunities, getFreelanceOpportunityById, updateFreelanceOpportunity, getFreelanceClients, getFreelanceProjects, getFreelanceFinanceSummary, insertFreelanceFinance, getPlatformBalances } from '../db/database.js';
 import { sendEmail } from '../emailer/sender.js';
 import { scanGoogleMaps, saveResults } from '../scraper/maps.js';
 import { scanAllReddit } from '../scraper/reddit.js';
@@ -33,6 +33,15 @@ export function createBot() {
       '🌐 /online — Leads online (Reddit, LinkedIn)\n' +
       '🔎 /scanreddit — Escanear Reddit\n' +
       '💼 /scanlinkedin — Escanear LinkedIn via Google\n\n' +
+      '*Freelance:*\n' +
+      '💼 /freelance — Dashboard freelance\n' +
+      '🔍 /opportunities — Top oportunidades\n' +
+      '👤 /clients — Clientes activos\n' +
+      '📁 /projects — Proyectos en curso\n' +
+      '💰 /income — Ingresos del mes\n' +
+      '💸 /expense — Registrar gasto\n' +
+      '💳 /balance — Balance mensual\n' +
+      '🎫 /credits — Créditos plataformas\n\n' +
       '*Acciones:*\n' +
       '📧 /send <id> — Enviar email a un lead\n' +
       '📋 /detail <id> — Ver detalle de un lead\n' +
@@ -511,6 +520,286 @@ export function createBot() {
     await ctx.reply(msg, { parse_mode: 'Markdown', reply_markup: keyboard, disable_web_page_preview: true });
   });
 
+  // === COMANDOS FREELANCE ===
+
+  // /freelance — Dashboard rápido freelance
+  bot.command('freelance', async (ctx) => {
+    try {
+      const stats = getFreelanceStats();
+      const balance = stats.revenue.thisMonth - stats.expenses.thisMonth;
+      const balanceEmoji = balance >= 0 ? '📈' : '📉';
+
+      let msg = '💼 *Dashboard Freelance*\n\n';
+      msg += `*Ingresos este mes:* ${stats.revenue.thisMonth.toLocaleString()}€\n`;
+      msg += `*Gastos este mes:* ${stats.expenses.thisMonth.toLocaleString()}€\n`;
+      msg += `${balanceEmoji} *Balance:* ${balance.toLocaleString()}€\n\n`;
+      msg += `👤 Clientes: ${stats.clients.active} activos (${stats.clients.total} total)\n`;
+      msg += `📁 Proyectos: ${stats.projects.active} en curso\n`;
+      msg += `🔍 Oportunidades: ${stats.opportunities.hot} hot | ${stats.opportunities.total} total\n`;
+      msg += `✅ Aplicados: ${stats.opportunities.applied} | Ganados: ${stats.opportunities.won}\n\n`;
+      msg += `*Año:* ${stats.revenue.thisYear.toLocaleString()}€ ingresos`;
+
+      await ctx.reply(msg, { parse_mode: 'Markdown' });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
+  // /opportunities — Top oportunidades por match score
+  bot.command('opportunities', async (ctx) => {
+    try {
+      const { opportunities } = getFreelanceOpportunities({ min_score: 40, limit: 10 });
+
+      if (opportunities.length === 0) {
+        return ctx.reply('No hay oportunidades interesantes. Lanza un scan desde /scan o el panel web.');
+      }
+
+      let msg = '🔍 *Top oportunidades freelance:*\n\n';
+      for (const opp of opportunities) {
+        const tier = opp.match_score >= 70 ? '🔥' : opp.match_score >= 40 ? '🟡' : '🔵';
+        const budget = opp.budget_max ? `$${opp.budget_min || '?'}-$${opp.budget_max}` :
+          opp.budget_min ? `$${opp.budget_min}+` : '?';
+        const skills = opp.skills_required ? JSON.parse(opp.skills_required).slice(0, 3).join(', ') : '';
+
+        msg += `${tier} *${opp.title.slice(0, 60)}*\n`;
+        msg += `📊 ${opp.match_score}pts | ${opp.platform} | ${budget}\n`;
+        if (skills) msg += `🔧 ${skills}\n`;
+        msg += `📋 /opp\\_${opp.id}\n\n`;
+      }
+
+      await ctx.reply(msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
+  // /opp_<id> — Detalle de oportunidad (via texto, no comando real)
+  bot.hears(/^\/opp_(\d+)$/, async (ctx) => {
+    try {
+      const id = parseInt(ctx.match[1]);
+      const opp = getFreelanceOpportunityById(id);
+      if (!opp) return ctx.reply(`❌ Oportunidad #${id} no encontrada`);
+
+      const tier = opp.match_score >= 70 ? '🔥' : opp.match_score >= 40 ? '🟡' : '🔵';
+      const skills = opp.skills_required ? JSON.parse(opp.skills_required).join(', ') : 'No especificadas';
+      const budget = opp.budget_max ? `$${opp.budget_min || '?'} - $${opp.budget_max}` :
+        opp.budget_min ? `$${opp.budget_min}+` : 'No especificado';
+
+      let msg = `${tier} *${opp.title}*\n\n`;
+      msg += `📊 Score: *${opp.match_score}pts* | Estado: ${opp.status}\n`;
+      msg += `📌 Plataforma: ${opp.platform}\n`;
+      msg += `💰 Budget: ${budget} (${opp.budget_type || '?'})\n`;
+      msg += `🔧 Skills: ${skills}\n`;
+      if (opp.country) msg += `🌍 País: ${opp.country}\n`;
+      if (opp.proposals_count) msg += `📝 Propuestas: ${opp.proposals_count}\n`;
+      if (opp.client_rating) msg += `⭐ Rating cliente: ${opp.client_rating}\n`;
+      if (opp.urgency) msg += `⚡ Urgencia: ${opp.urgency}\n`;
+      msg += `\n📝 ${(opp.description || 'Sin descripción').slice(0, 300)}`;
+      if (opp.description?.length > 300) msg += '...';
+
+      const keyboard = new InlineKeyboard();
+      if (opp.url) keyboard.url('🔗 Ver original', opp.url).row();
+      if (opp.status === 'new' || opp.status === 'interested') {
+        keyboard
+          .text('⚡ Interesado', `fopp_interested_${opp.id}`)
+          .text('✅ Aplicar', `fopp_applied_${opp.id}`)
+          .row()
+          .text('❌ Skip', `fopp_skipped_${opp.id}`);
+      }
+
+      await ctx.reply(msg, { parse_mode: 'Markdown', reply_markup: keyboard, disable_web_page_preview: true });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
+  // /clients — Clientes activos
+  bot.command('clients', async (ctx) => {
+    try {
+      const { clients } = getFreelanceClients({ status: 'active', limit: 15 });
+
+      if (clients.length === 0) {
+        const { clients: allClients } = getFreelanceClients({ limit: 10 });
+        if (allClients.length === 0) return ctx.reply('No hay clientes registrados aún.');
+        let msg = '👤 *Clientes (no hay activos):*\n\n';
+        for (const c of allClients) {
+          msg += `${c.status === 'prospect' ? '🔵' : '⚪'} *${c.name}* (${c.status})\n`;
+          if (c.total_revenue > 0) msg += `  💰 ${c.total_revenue.toLocaleString()}€ | ${c.projects_count} proyectos\n`;
+        }
+        return ctx.reply(msg, { parse_mode: 'Markdown' });
+      }
+
+      let msg = '👤 *Clientes activos:*\n\n';
+      for (const c of clients) {
+        msg += `✅ *${c.name}*`;
+        if (c.company) msg += ` (${c.company})`;
+        msg += '\n';
+        msg += `  💰 ${c.total_revenue.toLocaleString()}€ | 📁 ${c.projects_count} proyectos\n`;
+        if (c.source) msg += `  📌 ${c.source}`;
+        if (c.country) msg += ` | 🌍 ${c.country}`;
+        msg += '\n\n';
+      }
+
+      await ctx.reply(msg, { parse_mode: 'Markdown' });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
+  // /projects — Proyectos en curso
+  bot.command('projects', async (ctx) => {
+    try {
+      const { projects } = getFreelanceProjects({ status: 'in_progress', limit: 10 });
+
+      if (projects.length === 0) {
+        const { projects: allProjects } = getFreelanceProjects({ limit: 10 });
+        if (allProjects.length === 0) return ctx.reply('No hay proyectos registrados aún.');
+        let msg = '📁 *Proyectos recientes:*\n\n';
+        for (const p of allProjects) {
+          const emoji = { proposal: '📝', negotiation: '🤝', in_progress: '🔄', delivered: '📦', paid: '✅', closed: '🔒', cancelled: '❌' }[p.status] || '📋';
+          msg += `${emoji} *${p.name}* (${p.status})\n`;
+          if (p.agreed_price) msg += `  💰 ${p.agreed_price.toLocaleString()} ${p.currency}\n`;
+        }
+        return ctx.reply(msg, { parse_mode: 'Markdown' });
+      }
+
+      let msg = '📁 *Proyectos en curso:*\n\n';
+      for (const p of projects) {
+        msg += `🔄 *${p.name}*\n`;
+        if (p.agreed_price) msg += `  💰 ${p.agreed_price.toLocaleString()} ${p.currency}`;
+        if (p.total_paid > 0) msg += ` (cobrado: ${p.total_paid.toLocaleString()})`;
+        msg += '\n';
+        if (p.deadline) msg += `  ⏰ Deadline: ${new Date(p.deadline).toLocaleDateString('es-ES')}\n`;
+        if (p.hours_logged > 0) msg += `  🕐 ${p.hours_logged}h logueadas`;
+        if (p.hours_estimated) msg += ` / ${p.hours_estimated}h estimadas`;
+        msg += '\n\n';
+      }
+
+      await ctx.reply(msg, { parse_mode: 'Markdown' });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
+  // /income — Ingresos del mes
+  bot.command('income', async (ctx) => {
+    try {
+      const summary = getFreelanceFinanceSummary('month');
+      let msg = '💰 *Ingresos del mes:*\n\n';
+      msg += `Total: *${summary.totalIncome.toLocaleString()}€*\n`;
+      msg += `Gastos: *${summary.totalExpenses.toLocaleString()}€*\n`;
+      msg += `Balance: *${(summary.totalIncome - summary.totalExpenses).toLocaleString()}€*\n`;
+
+      if (summary.byCategory && summary.byCategory.length > 0) {
+        msg += '\n*Por categoría:*\n';
+        for (const cat of summary.byCategory) {
+          msg += `  ${cat.type === 'income' ? '📈' : '📉'} ${cat.category}: ${cat.total.toLocaleString()}€\n`;
+        }
+      }
+
+      await ctx.reply(msg, { parse_mode: 'Markdown' });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
+  // /expense <amount> <category> <description> — Registrar gasto rápido
+  bot.command('expense', async (ctx) => {
+    const args = ctx.match?.trim();
+    if (!args) {
+      return ctx.reply(
+        '💸 *Registrar gasto:*\n\n' +
+        '`/expense 29.99 software Suscripción Cursor`\n' +
+        '`/expense 100 hosting Servidor VPS mes`\n\n' +
+        '*Categorías:* software, hardware, hosting, domain, ai\\_tools, marketing, education, taxes, accountant, office, travel, other',
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    const parts = args.split(' ');
+    const amount = parseFloat(parts[0]);
+    if (isNaN(amount) || amount <= 0) {
+      return ctx.reply('❌ Importe inválido. Uso: `/expense 29.99 software Descripción`', { parse_mode: 'Markdown' });
+    }
+
+    const category = parts[1] || 'other';
+    const description = parts.slice(2).join(' ') || `Gasto ${category}`;
+
+    try {
+      insertFreelanceFinance({
+        type: 'expense',
+        category,
+        amount,
+        currency: 'EUR',
+        description,
+        date: new Date().toISOString().split('T')[0],
+        tax_deductible: 1,
+      });
+
+      const summary = getFreelanceFinanceSummary('month');
+      await ctx.reply(
+        `✅ Gasto registrado: *${amount.toLocaleString()}€* (${category})\n` +
+        `📝 ${description}\n\n` +
+        `Balance mes: ${(summary.totalIncome - summary.totalExpenses).toLocaleString()}€`,
+        { parse_mode: 'Markdown' }
+      );
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
+  // /balance — Balance mensual
+  bot.command('balance', async (ctx) => {
+    try {
+      const summary = getFreelanceFinanceSummary('month');
+      const bal = summary.totalIncome - summary.totalExpenses;
+      const emoji = bal >= 0 ? '📈' : '📉';
+
+      let msg = `${emoji} *Balance mensual:*\n\n`;
+      msg += `💰 Ingresos: +${summary.totalIncome.toLocaleString()}€\n`;
+      msg += `💸 Gastos: -${summary.totalExpenses.toLocaleString()}€\n`;
+      msg += `━━━━━━━━━━━━\n`;
+      msg += `${emoji} *Balance: ${bal >= 0 ? '+' : ''}${bal.toLocaleString()}€*\n`;
+
+      if (summary.monthly && summary.monthly.length > 1) {
+        msg += '\n*Últimos meses:*\n';
+        for (const m of summary.monthly.slice(0, 4)) {
+          const mBal = m.income - m.expenses;
+          msg += `  ${m.month}: ${mBal >= 0 ? '+' : ''}${mBal.toLocaleString()}€\n`;
+        }
+      }
+
+      await ctx.reply(msg, { parse_mode: 'Markdown' });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
+  // /credits — Estado de créditos en plataformas
+  bot.command('credits', async (ctx) => {
+    try {
+      const balances = getPlatformBalances();
+
+      if (balances.length === 0) {
+        return ctx.reply('No hay plataformas configuradas aún. Añádelas desde el panel web.');
+      }
+
+      let msg = '🎫 *Créditos por plataforma:*\n\n';
+      for (const b of balances) {
+        const pct = b.monthly_free_credits > 0 ? Math.round(b.credits_balance / b.monthly_free_credits * 100) : 100;
+        const bar = '█'.repeat(Math.min(10, Math.round(pct / 10))) + '░'.repeat(Math.max(0, 10 - Math.round(pct / 10)));
+        msg += `*${b.platform}*: ${b.credits_balance} ${b.credits_unit}\n`;
+        msg += `  ${bar} ${pct}%\n`;
+        if (b.cost_per_credit > 0) msg += `  💵 ${b.cost_per_credit} ${b.cost_currency}/credit\n`;
+        msg += '\n';
+      }
+
+      await ctx.reply(msg, { parse_mode: 'Markdown' });
+    } catch (err) {
+      await ctx.reply(`❌ Error: ${err.message}`);
+    }
+  });
+
   // Callback queries (botones inline)
   bot.on('callback_query:data', async (ctx) => {
     const data = ctx.callbackQuery.data;
@@ -620,6 +909,18 @@ export function createBot() {
 
       await ctx.reply(msg, { parse_mode: 'Markdown', reply_markup: kb, disable_web_page_preview: true });
     }
+
+    // Freelance opportunity status buttons
+    if (data.startsWith('fopp_')) {
+      const parts = data.split('_');
+      const newStatus = parts[1];
+      const oppId = parseInt(parts[2]);
+      await ctx.answerCallbackQuery(`Estado → ${newStatus}`);
+      updateFreelanceOpportunity(oppId, { status: newStatus });
+      const opp = getFreelanceOpportunityById(oppId);
+      const emoji = { interested: '⚡', applied: '✅', skipped: '❌', won: '🏆', lost: '😞' }[newStatus] || '📌';
+      await ctx.reply(`${emoji} Oportunidad *${opp?.title?.slice(0, 50) || oppId}* → *${newStatus}*`, { parse_mode: 'Markdown' });
+    }
   });
 
   return bot;
@@ -682,6 +983,18 @@ export async function sendMorningSummary() {
     }
   } catch {}
 
+  // Stats freelance
+  try {
+    const fStats = getFreelanceStats();
+    if (fStats.opportunities.total > 0 || fStats.projects.active > 0) {
+      msg += '\n\n💼 *Freelance:*';
+      msg += `\n🔍 Oportunidades: ${fStats.opportunities.hot} hot / ${fStats.opportunities.total} total`;
+      if (fStats.projects.active > 0) msg += `\n📁 Proyectos activos: ${fStats.projects.active}`;
+      const bal = fStats.revenue.thisMonth - fStats.expenses.thisMonth;
+      msg += `\n💰 Balance mes: ${bal >= 0 ? '+' : ''}${bal.toLocaleString()}€`;
+    }
+  } catch {}
+
   await notifyAdmin(msg);
 }
 
@@ -735,7 +1048,115 @@ export async function sendEveningSummary() {
     }
   } catch {}
 
+  // Añadir resumen freelance al nocturno
+  try {
+    const fStats = getFreelanceStats();
+    if (fStats.opportunities.total > 0 || fStats.projects.active > 0) {
+      msg += '\n\n*Freelance:*';
+      if (fStats.opportunities.hot > 0) msg += `\n🔥 ${fStats.opportunities.hot} oportunidades hot`;
+      if (fStats.projects.active > 0) msg += `\n📁 ${fStats.projects.active} proyectos activos`;
+      const balance = fStats.revenue.thisMonth - fStats.expenses.thisMonth;
+      msg += `\n💰 Balance mes: ${balance >= 0 ? '+' : ''}${balance.toLocaleString()}€`;
+    }
+  } catch {}
+
   msg += '\n\nMañana seguimos. Buenas noches.';
 
   await notifyAdmin(msg);
+}
+
+/**
+ * Notifica nueva oportunidad hot freelance
+ */
+export async function notifyHotOpportunity(opp) {
+  const skills = opp.skills_required ? JSON.parse(opp.skills_required).slice(0, 5).join(', ') : '';
+  const budget = opp.budget_max ? `$${opp.budget_min || '?'}-$${opp.budget_max}` :
+    opp.budget_min ? `$${opp.budget_min}+` : '?';
+
+  const msg =
+    '🔥 *Nueva oportunidad HOT!*\n\n' +
+    `*${opp.title}*\n` +
+    `📊 Score: ${opp.match_score}pts | ${opp.platform}\n` +
+    `💰 Budget: ${budget}\n` +
+    (skills ? `🔧 ${skills}\n` : '') +
+    `\n📋 /opp\\_${opp.id}`;
+
+  await notifyAdmin(msg);
+}
+
+/**
+ * Notifica deadline próximo de proyecto
+ */
+export async function notifyProjectDeadline(project, daysLeft) {
+  const emoji = daysLeft <= 1 ? '🚨' : daysLeft <= 3 ? '⚠️' : '⏰';
+  const msg =
+    `${emoji} *Deadline en ${daysLeft} día${daysLeft > 1 ? 's' : ''}!*\n\n` +
+    `📁 *${project.name}*\n` +
+    `⏰ ${new Date(project.deadline).toLocaleDateString('es-ES')}\n` +
+    (project.agreed_price ? `💰 ${project.agreed_price.toLocaleString()} ${project.currency}\n` : '');
+
+  await notifyAdmin(msg);
+}
+
+/**
+ * Resumen semanal freelance (lunes 09:00)
+ */
+export async function sendWeeklyFreelanceSummary() {
+  try {
+    const stats = getFreelanceStats();
+    const summary = getFreelanceFinanceSummary('month');
+    const balance = summary.totalIncome - summary.totalExpenses;
+
+    // Oportunidades de la semana
+    const db = getDb();
+    const newOppsWeek = db.prepare("SELECT COUNT(*) as c FROM freelance_opportunities WHERE found_at >= datetime('now', '-7 days')").get().c;
+    const hotOppsWeek = db.prepare("SELECT COUNT(*) as c FROM freelance_opportunities WHERE found_at >= datetime('now', '-7 days') AND match_score >= 70").get().c;
+    const appliedWeek = db.prepare("SELECT COUNT(*) as c FROM freelance_opportunities WHERE applied_at >= datetime('now', '-7 days')").get().c;
+
+    let msg = '📊 *Resumen semanal Freelance*\n\n';
+    msg += `*Oportunidades esta semana:*\n`;
+    msg += `  🆕 Nuevas: ${newOppsWeek}\n`;
+    msg += `  🔥 Hot: ${hotOppsWeek}\n`;
+    msg += `  ✅ Aplicadas: ${appliedWeek}\n\n`;
+    msg += `*Proyectos:*\n`;
+    msg += `  🔄 En curso: ${stats.projects.active}\n`;
+    msg += `  📝 Propuestas: ${stats.projects.proposals}\n`;
+    msg += `  ✅ Pagados: ${stats.projects.paid}\n\n`;
+    msg += `*Finanzas del mes:*\n`;
+    msg += `  💰 Ingresos: ${summary.totalIncome.toLocaleString()}€\n`;
+    msg += `  💸 Gastos: ${summary.totalExpenses.toLocaleString()}€\n`;
+    msg += `  ${balance >= 0 ? '📈' : '📉'} Balance: ${balance >= 0 ? '+' : ''}${balance.toLocaleString()}€\n`;
+    msg += `  📅 Año: ${stats.revenue.thisYear.toLocaleString()}€`;
+
+    await notifyAdmin(msg);
+  } catch (err) {
+    log.error(`Error en resumen semanal freelance: ${err.message}`);
+  }
+}
+
+/**
+ * Check deadlines próximos y notificar
+ */
+export async function checkProjectDeadlines() {
+  try {
+    const db = getDb();
+    const upcoming = db.prepare(`
+      SELECT * FROM freelance_projects
+      WHERE deadline IS NOT NULL AND status = 'in_progress'
+      AND deadline >= datetime('now') AND deadline <= datetime('now', '+3 days')
+      ORDER BY deadline ASC
+    `).all();
+
+    for (const project of upcoming) {
+      const daysLeft = Math.ceil((new Date(project.deadline) - Date.now()) / 86400000);
+      if (daysLeft <= 3) {
+        await notifyProjectDeadline(project, daysLeft);
+      }
+    }
+
+    return { checked: upcoming.length };
+  } catch (err) {
+    log.error(`Error checking deadlines: ${err.message}`);
+    return { checked: 0 };
+  }
 }

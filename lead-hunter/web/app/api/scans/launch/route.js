@@ -14,6 +14,11 @@ export async function POST(request) {
     fiverr: '/api/scans/fiverr',
     linkedin: '/api/scans/linkedin',
     score: '/api/scans/score',
+    upwork: '/api/scans/upwork',
+    hackernews: '/api/scans/hackernews',
+    'reddit-freelance': '/api/scans/reddit-freelance',
+    'freelance-score': '/api/scans/freelance-score',
+    'linkedin-jobs': '/api/scans/linkedin-jobs',
   };
 
   const endpoint = endpoints[type];

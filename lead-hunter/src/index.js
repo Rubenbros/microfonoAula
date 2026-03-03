@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import cron from 'node-cron';
 import { setupDatabase } from './db/database.js';
-import { createBot, sendMorningSummary, sendEveningSummary, notifyAdmin } from './telegram/commands.js';
+import { createBot, sendMorningSummary, sendEveningSummary, notifyAdmin, notifyHotOpportunity, sendWeeklyFreelanceSummary, checkProjectDeadlines } from './telegram/commands.js';
 import { scanGoogleMaps, saveResults } from './scraper/maps.js';
 import { scanAllReddit } from './scraper/reddit.js';
 import { scanGoogleLinkedIn } from './scraper/google-linkedin.js';
@@ -10,6 +10,12 @@ import { runEmailSequences } from './emailer/sender.js';
 import { startTracker } from './emailer/tracker.js';
 import { checkDemoVisits } from './demo/visits.js';
 import { startApiServer } from './api/server.js';
+import { scanAllUpwork } from './scraper/upwork.js';
+import { scanHackerNews } from './scraper/hackernews.js';
+import { scanRedditFreelance } from './scraper/reddit-freelance.js';
+import { scoreNewOpportunities } from './analyzer/freelance_scorer.js';
+import { scanLinkedInJobs } from './scraper/linkedin-jobs.js';
+import { getFreelanceOpportunities } from './db/database.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -204,6 +210,93 @@ async function main() {
     await sendEveningSummary();
   });
 
+  // === FREELANCE CRON JOBS ===
+
+  // Cada 4h (6:00, 10:00, 14:00, 18:00) — Scan Upwork
+  cron.schedule('0 6,10,14,18 * * *', async () => {
+    log.info('Cron: Scan Upwork');
+    try {
+      const result = await scanAllUpwork();
+      if (result.new > 0) {
+        await notifyAdmin(`💼 Upwork: ${result.total} encontradas, *${result.new} nuevas*`);
+      }
+    } catch (err) {
+      log.error(`Error en scan Upwork: ${err.message}`);
+    }
+  });
+
+  // Cada 6h (7:00, 13:00, 19:00) — Scan Reddit Freelance
+  cron.schedule('0 7,13,19 * * *', async () => {
+    log.info('Cron: Scan Reddit Freelance');
+    try {
+      const result = await scanRedditFreelance();
+      if (result.new > 0) {
+        await notifyAdmin(`🌐 Reddit Freelance: ${result.total} posts, *${result.new} nuevos*`);
+      }
+    } catch (err) {
+      log.error(`Error en scan Reddit Freelance: ${err.message}`);
+    }
+  });
+
+  // Cada 24h a las 08:00 — Scan HackerNews "Who is hiring?"
+  cron.schedule('0 8 * * *', async () => {
+    log.info('Cron: Scan HackerNews');
+    try {
+      const result = await scanHackerNews();
+      if (result.new > 0) {
+        await notifyAdmin(`🟠 HackerNews: ${result.total} encontradas, *${result.new} nuevas*`);
+      }
+    } catch (err) {
+      log.error(`Error en scan HackerNews: ${err.message}`);
+    }
+  });
+
+  // Cada 4h (8:30, 12:30, 16:30) — Scoring de oportunidades freelance
+  cron.schedule('30 8,12,16 * * *', async () => {
+    log.info('Cron: Scoring oportunidades freelance');
+    try {
+      const result = await scoreNewOpportunities();
+      if (result.scored > 0) {
+        log.info(`Freelance scoring: ${result.scored} oportunidades puntuadas (${result.hot} hot)`);
+
+        // Notificar oportunidades hot nuevas
+        if (result.hot > 0) {
+          const { opportunities } = getFreelanceOpportunities({ min_score: 70, status: 'new', limit: 5 });
+          for (const opp of opportunities) {
+            await notifyHotOpportunity(opp);
+          }
+        }
+      }
+    } catch (err) {
+      log.error(`Error en scoring freelance: ${err.message}`);
+    }
+  });
+
+  // Lunes 09:00 — Resumen semanal freelance
+  cron.schedule('0 9 * * 1', async () => {
+    log.info('Cron: Resumen semanal freelance');
+    await sendWeeklyFreelanceSummary();
+  });
+
+  // Diario 09:30 — Scan LinkedIn Jobs (via Google Search)
+  cron.schedule('30 9 * * 1-5', async () => {
+    log.info('Cron: Scan LinkedIn Jobs');
+    try {
+      const result = await scanLinkedInJobs();
+      if (result.new > 0) {
+        await notifyAdmin(`💼 LinkedIn Jobs: ${result.total} encontradas, *${result.new} nuevas*`);
+      }
+    } catch (err) {
+      log.error(`Error en scan LinkedIn Jobs: ${err.message}`);
+    }
+  });
+
+  // Diario 19:00 — Check deadlines próximos de proyectos
+  cron.schedule('0 19 * * *', async () => {
+    log.info('Cron: Check deadlines proyectos');
+    await checkProjectDeadlines();
+  });
+
   log.info('Cron jobs programados:');
   log.info('  06:00 L-V — Google Maps');
   log.info('  07:00 diario — Reddit (mañana)');
@@ -215,6 +308,14 @@ async function main() {
   log.info('  15:30 diario — Scoring tarde');
   log.info('  */15 9-19 L-V — Chequeo visitas demos');
   log.info('  20:00 L-V — Resumen nocturno');
+  log.info('  --- FREELANCE ---');
+  log.info('  Cada 4h — Scan Upwork');
+  log.info('  Cada 6h — Scan Reddit Freelance');
+  log.info('  08:00 diario — Scan HackerNews');
+  log.info('  Cada 4h — Scoring freelance + notif hot');
+  log.info('  09:30 L-V — Scan LinkedIn Jobs');
+  log.info('  Lunes 09:00 — Resumen semanal freelance');
+  log.info('  19:00 diario — Check deadlines proyectos');
   log.info('=== Lead Hunter listo ===');
 }
 

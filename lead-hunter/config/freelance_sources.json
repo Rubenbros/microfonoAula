@@ -1,0 +1,157 @@
+{
+  "platforms": {
+    "upwork": {
+      "enabled": true,
+      "name": "Upwork",
+      "type": "paid_credits",
+      "credits_unit": "connects",
+      "cost_per_credit": 0.15,
+      "cost_currency": "USD",
+      "monthly_free_credits": 10,
+      "avg_credits_per_apply": 8,
+      "keywords": [
+        "react developer",
+        "nextjs developer",
+        "full stack javascript",
+        "node.js developer",
+        "ai automation",
+        "chatbot developer",
+        "tech lead fractional",
+        "python automation",
+        "web scraping",
+        "saas development"
+      ],
+      "min_budget": 500,
+      "max_proposals": 20,
+      "scan_interval_hours": 4,
+      "rss_base_url": "https://www.upwork.com/ab/feed/jobs/rss"
+    },
+    "freelancer": {
+      "enabled": true,
+      "name": "Freelancer.com",
+      "type": "paid_credits",
+      "credits_unit": "bids",
+      "cost_per_credit": 0,
+      "cost_currency": "USD",
+      "monthly_free_credits": 6,
+      "avg_credits_per_apply": 1,
+      "subscription_plans": {
+        "free": { "bids": 6, "cost": 0 },
+        "basic": { "bids": 50, "cost": 5 },
+        "professional": { "bids": 300, "cost": 24.95 },
+        "premier": { "bids": 1500, "cost": 99 }
+      },
+      "keywords": [
+        "react", "nextjs", "nodejs", "full stack",
+        "ai", "automation", "chatbot", "web app"
+      ],
+      "min_budget": 300,
+      "scan_interval_hours": 6
+    },
+    "peopleperhour": {
+      "enabled": false,
+      "name": "PeoplePerHour",
+      "type": "paid_credits",
+      "credits_unit": "proposal_credits",
+      "cost_per_credit": 0,
+      "cost_currency": "GBP",
+      "monthly_free_credits": 15,
+      "avg_credits_per_apply": 1,
+      "scan_interval_hours": 12
+    },
+    "toptal": {
+      "enabled": false,
+      "name": "Toptal",
+      "type": "free_apply",
+      "notes": "Requiere pasar proceso de selección previo",
+      "scan_interval_hours": 24
+    },
+    "linkedin": {
+      "enabled": true,
+      "name": "LinkedIn",
+      "type": "free_apply",
+      "search_queries": [
+        "freelance developer react remote",
+        "contractor ai automation",
+        "fractional CTO startup",
+        "freelance full stack developer"
+      ],
+      "scan_interval_hours": 12
+    },
+    "reddit": {
+      "enabled": true,
+      "name": "Reddit",
+      "type": "free_apply",
+      "subreddits": [
+        "forhire", "freelance", "remotejs", "webdev",
+        "slavelabour", "startups", "SideProject"
+      ],
+      "scan_interval_hours": 6
+    },
+    "hackernews": {
+      "enabled": true,
+      "name": "Hacker News",
+      "type": "free_apply",
+      "threads": ["whoishiring"],
+      "scan_interval_hours": 24
+    },
+    "twitter": {
+      "enabled": false,
+      "name": "Twitter/X",
+      "type": "free_apply",
+      "keywords": [
+        "hiring freelancer developer",
+        "looking for developer",
+        "need a developer",
+        "freelance react"
+      ],
+      "scan_interval_hours": 12
+    }
+  },
+  "profile": {
+    "name": "Rubén Jarne",
+    "title": "Full Stack Developer & Tech Lead",
+    "bio": "Tech Lead with expertise in React, Next.js, Node.js, and AI/automation. I build scalable web applications, AI-powered tools, and automated business solutions.",
+    "skills": [
+      "react", "nextjs", "nodejs", "typescript", "javascript",
+      "python", "ai", "automation", "chatbot", "web-scraping",
+      "postgresql", "mongodb", "sqlite", "express", "nestjs",
+      "tailwindcss", "playwright", "docker", "vercel", "aws"
+    ],
+    "core_skills": ["react", "nextjs", "nodejs", "ai", "automation"],
+    "experience_years": 5,
+    "hourly_rate_min": 50,
+    "hourly_rate_max": 120,
+    "hourly_rate_currency": "EUR",
+    "preferred_project_min": 1000,
+    "preferred_project_max": 50000,
+    "preferred_languages": ["en", "es"],
+    "portfolio_url": "https://t800labs.com",
+    "linkedin_url": "https://linkedin.com/in/rubenbros",
+    "availability": "part-time",
+    "timezone": "Europe/Madrid"
+  },
+  "scoring": {
+    "weights": {
+      "budget_high": 20,
+      "budget_medium": 12,
+      "budget_exists": 5,
+      "skills_high_match": 20,
+      "skills_medium_match": 12,
+      "skills_low_match": 3,
+      "client_good_rating": 10,
+      "client_history": 8,
+      "few_proposals": 10,
+      "urgency_high": 8,
+      "long_term": 8,
+      "spanish_language": 5,
+      "premium_platform": 5,
+      "post_very_recent": 10,
+      "post_recent": 5
+    },
+    "thresholds": {
+      "hot": 70,
+      "warm": 40
+    }
+  }
+}

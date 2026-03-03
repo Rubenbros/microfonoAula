@@ -153,6 +153,234 @@ export function setupDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_tasks_automation ON automation_tasks(automation_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON automation_tasks(status);
+
+    -- ========================================
+    -- MÓDULO FREELANCE
+    -- ========================================
+
+    -- Clientes freelance
+    CREATE TABLE IF NOT EXISTS freelance_clients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      company TEXT,
+      email TEXT,
+      phone TEXT,
+      country TEXT,
+      language TEXT DEFAULT 'en',
+      timezone TEXT,
+      source TEXT,
+      source_url TEXT,
+      lead_id INTEGER,
+      status TEXT DEFAULT 'prospect',
+      tags TEXT,
+      notes TEXT,
+      total_revenue REAL DEFAULT 0,
+      projects_count INTEGER DEFAULT 0,
+      rating INTEGER,
+      first_contact_at DATETIME,
+      last_contact_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (lead_id) REFERENCES leads(id)
+    );
+
+    -- Proyectos freelance
+    CREATE TABLE IF NOT EXISTS freelance_projects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      service_type TEXT,
+      status TEXT DEFAULT 'proposal',
+      currency TEXT DEFAULT 'EUR',
+      budget_min REAL,
+      budget_max REAL,
+      agreed_price REAL,
+      payment_type TEXT DEFAULT 'fixed',
+      hourly_rate REAL,
+      hours_estimated REAL,
+      hours_logged REAL DEFAULT 0,
+      deposit_amount REAL,
+      deposit_paid INTEGER DEFAULT 0,
+      total_paid REAL DEFAULT 0,
+      platform TEXT,
+      platform_fee_percent REAL DEFAULT 0,
+      proposal_url TEXT,
+      contract_url TEXT,
+      repo_url TEXT,
+      deploy_url TEXT,
+      deadline DATETIME,
+      started_at DATETIME,
+      delivered_at DATETIME,
+      paid_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES freelance_clients(id)
+    );
+
+    -- Hitos de proyecto
+    CREATE TABLE IF NOT EXISTS freelance_milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      amount REAL,
+      status TEXT DEFAULT 'pending',
+      due_date DATETIME,
+      completed_at DATETIME,
+      paid_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES freelance_projects(id) ON DELETE CASCADE
+    );
+
+    -- Finanzas (gastos e ingresos)
+    CREATE TABLE IF NOT EXISTS freelance_finances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      category TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT DEFAULT 'EUR',
+      description TEXT,
+      project_id INTEGER,
+      client_id INTEGER,
+      date DATE NOT NULL,
+      invoice_number TEXT,
+      invoice_url TEXT,
+      tax_deductible INTEGER DEFAULT 0,
+      recurring INTEGER DEFAULT 0,
+      recurring_period TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES freelance_projects(id),
+      FOREIGN KEY (client_id) REFERENCES freelance_clients(id)
+    );
+
+    -- Oportunidades detectadas en plataformas
+    CREATE TABLE IF NOT EXISTS freelance_opportunities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      url TEXT NOT NULL,
+      author TEXT,
+      author_url TEXT,
+      budget_min REAL,
+      budget_max REAL,
+      budget_type TEXT,
+      currency TEXT DEFAULT 'USD',
+      skills_required TEXT,
+      category TEXT,
+      country TEXT,
+      language TEXT DEFAULT 'en',
+      urgency TEXT,
+      posted_at DATETIME,
+      proposals_count INTEGER,
+      client_rating REAL,
+      client_spent REAL,
+      match_score INTEGER DEFAULT 0,
+      match_reasons TEXT,
+      status TEXT DEFAULT 'new',
+      applied_at DATETIME,
+      proposal_text TEXT,
+      notes TEXT,
+      found_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(platform, url)
+    );
+
+    -- Perfil freelance (key-value para matching y propuestas IA)
+    CREATE TABLE IF NOT EXISTS freelance_profile (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Balances de plataformas (créditos para aplicar)
+    CREATE TABLE IF NOT EXISTS platform_balances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform TEXT NOT NULL UNIQUE,
+      credits_balance REAL DEFAULT 0,
+      credits_unit TEXT DEFAULT 'connects',
+      cost_per_credit REAL DEFAULT 0,
+      cost_currency TEXT DEFAULT 'USD',
+      monthly_free_credits REAL DEFAULT 0,
+      subscription_plan TEXT,
+      subscription_cost REAL DEFAULT 0,
+      last_refill_at DATETIME,
+      notes TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Historial de transacciones de créditos
+    CREATE TABLE IF NOT EXISTS platform_credit_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform TEXT NOT NULL,
+      type TEXT NOT NULL,
+      amount REAL NOT NULL,
+      balance_after REAL,
+      opportunity_id INTEGER,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (opportunity_id) REFERENCES freelance_opportunities(id)
+    );
+
+    -- Entradas de tiempo (timer de horas)
+    CREATE TABLE IF NOT EXISTS time_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      description TEXT,
+      started_at DATETIME NOT NULL,
+      ended_at DATETIME,
+      duration_minutes REAL,
+      billable INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (project_id) REFERENCES freelance_projects(id) ON DELETE CASCADE
+    );
+
+    -- Facturas
+    CREATE TABLE IF NOT EXISTS invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_number TEXT UNIQUE NOT NULL,
+      client_id INTEGER NOT NULL,
+      project_id INTEGER,
+      amount REAL NOT NULL,
+      currency TEXT DEFAULT 'EUR',
+      tax_rate REAL DEFAULT 21,
+      tax_amount REAL DEFAULT 0,
+      total REAL NOT NULL,
+      status TEXT DEFAULT 'draft',
+      issued_at DATETIME,
+      due_at DATETIME,
+      paid_at DATETIME,
+      notes TEXT,
+      items TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES freelance_clients(id),
+      FOREIGN KEY (project_id) REFERENCES freelance_projects(id)
+    );
+
+    -- Índices freelance
+    CREATE INDEX IF NOT EXISTS idx_te_project ON time_entries(project_id);
+    CREATE INDEX IF NOT EXISTS idx_te_started ON time_entries(started_at);
+    CREATE INDEX IF NOT EXISTS idx_inv_client ON invoices(client_id);
+    CREATE INDEX IF NOT EXISTS idx_inv_status ON invoices(status);
+    CREATE INDEX IF NOT EXISTS idx_fc_status ON freelance_clients(status);
+    CREATE INDEX IF NOT EXISTS idx_fc_source ON freelance_clients(source);
+    CREATE INDEX IF NOT EXISTS idx_fp_client ON freelance_projects(client_id);
+    CREATE INDEX IF NOT EXISTS idx_fp_status ON freelance_projects(status);
+    CREATE INDEX IF NOT EXISTS idx_ff_type ON freelance_finances(type);
+    CREATE INDEX IF NOT EXISTS idx_ff_date ON freelance_finances(date);
+    CREATE INDEX IF NOT EXISTS idx_ff_category ON freelance_finances(category);
+    CREATE INDEX IF NOT EXISTS idx_ff_project ON freelance_finances(project_id);
+    CREATE INDEX IF NOT EXISTS idx_fo_platform ON freelance_opportunities(platform);
+    CREATE INDEX IF NOT EXISTS idx_fo_status ON freelance_opportunities(status);
+    CREATE INDEX IF NOT EXISTS idx_fo_score ON freelance_opportunities(match_score);
+    CREATE INDEX IF NOT EXISTS idx_fo_posted ON freelance_opportunities(posted_at);
+    CREATE INDEX IF NOT EXISTS idx_fm_project ON freelance_milestones(project_id);
+    CREATE INDEX IF NOT EXISTS idx_fm_status ON freelance_milestones(status);
+    CREATE INDEX IF NOT EXISTS idx_pct_platform ON platform_credit_transactions(platform);
+    CREATE INDEX IF NOT EXISTS idx_pct_type ON platform_credit_transactions(type);
   `);
 
   // Índice único para leads online (evitar duplicados por source_id)
@@ -546,6 +774,638 @@ export function updateTaskStatus(taskId, status, result = null, error = null) {
 export function deleteTasksByAutomation(automationId) {
   const db = getDb();
   db.prepare('DELETE FROM automation_tasks WHERE automation_id = ?').run(automationId);
+}
+
+// ========================================
+// MÓDULO FREELANCE — QUERIES
+// ========================================
+
+// === FREELANCE CLIENTS ===
+
+export function getFreelanceClients({ status, source, search, page = 1, limit = 20 } = {}) {
+  const db = getDb();
+  const conditions = [];
+  const params = [];
+
+  if (status) { conditions.push('status = ?'); params.push(status); }
+  if (source) { conditions.push('source = ?'); params.push(source); }
+  if (search) { conditions.push('(name LIKE ? OR company LIKE ? OR email LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+
+  const total = db.prepare(`SELECT COUNT(*) as c FROM freelance_clients ${where}`).get(...params).c;
+  const clients = db.prepare(
+    `SELECT * FROM freelance_clients ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`
+  ).all(...params, parseInt(limit), offset);
+
+  return { clients, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } };
+}
+
+export function getFreelanceClientById(id) {
+  return getDb().prepare('SELECT * FROM freelance_clients WHERE id = ?').get(id);
+}
+
+export function insertFreelanceClient(client) {
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO freelance_clients (name, company, email, phone, country, language, timezone, source, source_url, lead_id, status, tags, notes, first_contact_at)
+    VALUES (@name, @company, @email, @phone, @country, @language, @timezone, @source, @source_url, @lead_id, @status, @tags, @notes, @first_contact_at)
+  `);
+  return stmt.run({
+    name: client.name, company: client.company || null, email: client.email || null,
+    phone: client.phone || null, country: client.country || null, language: client.language || 'en',
+    timezone: client.timezone || null, source: client.source || null, source_url: client.source_url || null,
+    lead_id: client.lead_id || null, status: client.status || 'prospect', tags: client.tags ? JSON.stringify(client.tags) : null,
+    notes: client.notes || null, first_contact_at: client.first_contact_at || null,
+  });
+}
+
+export function updateFreelanceClient(id, updates) {
+  const db = getDb();
+  const allowed = ['name', 'company', 'email', 'phone', 'country', 'language', 'timezone', 'source', 'source_url', 'status', 'tags', 'notes', 'rating', 'last_contact_at'];
+  const sets = [];
+  const params = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (allowed.includes(key)) {
+      sets.push(`${key} = ?`);
+      params.push(key === 'tags' && Array.isArray(value) ? JSON.stringify(value) : value);
+    }
+  }
+  if (sets.length === 0) return;
+
+  sets.push("updated_at = CURRENT_TIMESTAMP");
+  params.push(id);
+  db.prepare(`UPDATE freelance_clients SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+}
+
+export function deleteFreelanceClient(id) {
+  const db = getDb();
+  db.prepare('DELETE FROM freelance_milestones WHERE project_id IN (SELECT id FROM freelance_projects WHERE client_id = ?)').run(id);
+  db.prepare('DELETE FROM freelance_projects WHERE client_id = ?').run(id);
+  db.prepare('DELETE FROM freelance_finances WHERE client_id = ?').run(id);
+  db.prepare('DELETE FROM freelance_clients WHERE id = ?').run(id);
+}
+
+// === FREELANCE PROJECTS ===
+
+export function getFreelanceProjects({ status, client_id, service_type, search, page = 1, limit = 20 } = {}) {
+  const db = getDb();
+  const conditions = [];
+  const params = [];
+
+  if (status) { conditions.push('p.status = ?'); params.push(status); }
+  if (client_id) { conditions.push('p.client_id = ?'); params.push(client_id); }
+  if (service_type) { conditions.push('p.service_type = ?'); params.push(service_type); }
+  if (search) { conditions.push('(p.name LIKE ? OR p.description LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+
+  const total = db.prepare(`SELECT COUNT(*) as c FROM freelance_projects p ${where}`).get(...params).c;
+  const projects = db.prepare(`
+    SELECT p.*, c.name as client_name FROM freelance_projects p
+    LEFT JOIN freelance_clients c ON p.client_id = c.id
+    ${where} ORDER BY p.updated_at DESC LIMIT ? OFFSET ?
+  `).all(...params, parseInt(limit), offset);
+
+  return { projects, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } };
+}
+
+export function getFreelanceProjectById(id) {
+  const db = getDb();
+  const project = db.prepare(`
+    SELECT p.*, c.name as client_name, c.company as client_company, c.email as client_email
+    FROM freelance_projects p
+    LEFT JOIN freelance_clients c ON p.client_id = c.id
+    WHERE p.id = ?
+  `).get(id);
+  if (!project) return null;
+
+  const milestones = db.prepare('SELECT * FROM freelance_milestones WHERE project_id = ? ORDER BY id ASC').all(id);
+  const finances = db.prepare('SELECT * FROM freelance_finances WHERE project_id = ? ORDER BY date DESC').all(id);
+  return { ...project, milestones, finances };
+}
+
+export function insertFreelanceProject(project) {
+  const db = getDb();
+  const result = db.prepare(`
+    INSERT INTO freelance_projects (client_id, name, description, service_type, status, currency, budget_min, budget_max,
+      agreed_price, payment_type, hourly_rate, hours_estimated, deposit_amount, platform, platform_fee_percent,
+      proposal_url, contract_url, repo_url, deploy_url, deadline)
+    VALUES (@client_id, @name, @description, @service_type, @status, @currency, @budget_min, @budget_max,
+      @agreed_price, @payment_type, @hourly_rate, @hours_estimated, @deposit_amount, @platform, @platform_fee_percent,
+      @proposal_url, @contract_url, @repo_url, @deploy_url, @deadline)
+  `).run({
+    client_id: project.client_id, name: project.name, description: project.description || null,
+    service_type: project.service_type || null, status: project.status || 'proposal',
+    currency: project.currency || 'EUR', budget_min: project.budget_min || null, budget_max: project.budget_max || null,
+    agreed_price: project.agreed_price || null, payment_type: project.payment_type || 'fixed',
+    hourly_rate: project.hourly_rate || null, hours_estimated: project.hours_estimated || null,
+    deposit_amount: project.deposit_amount || null, platform: project.platform || null,
+    platform_fee_percent: project.platform_fee_percent || 0, proposal_url: project.proposal_url || null,
+    contract_url: project.contract_url || null, repo_url: project.repo_url || null,
+    deploy_url: project.deploy_url || null, deadline: project.deadline || null,
+  });
+
+  // Actualizar contador de proyectos del cliente
+  db.prepare('UPDATE freelance_clients SET projects_count = projects_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(project.client_id);
+  return result;
+}
+
+export function updateFreelanceProject(id, updates) {
+  const db = getDb();
+  const allowed = ['name', 'description', 'service_type', 'status', 'currency', 'budget_min', 'budget_max',
+    'agreed_price', 'payment_type', 'hourly_rate', 'hours_estimated', 'hours_logged', 'deposit_amount',
+    'deposit_paid', 'total_paid', 'platform', 'platform_fee_percent', 'proposal_url', 'contract_url',
+    'repo_url', 'deploy_url', 'deadline', 'started_at', 'delivered_at', 'paid_at'];
+  const sets = [];
+  const params = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (allowed.includes(key)) {
+      sets.push(`${key} = ?`);
+      params.push(value);
+    }
+  }
+  if (sets.length === 0) return;
+
+  sets.push("updated_at = CURRENT_TIMESTAMP");
+  params.push(id);
+  db.prepare(`UPDATE freelance_projects SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+
+  // Si se marca como paid, actualizar total_revenue del cliente
+  if (updates.status === 'paid' || updates.total_paid !== undefined) {
+    const project = db.prepare('SELECT client_id FROM freelance_projects WHERE id = ?').get(id);
+    if (project) {
+      const totalRevenue = db.prepare('SELECT COALESCE(SUM(total_paid), 0) as t FROM freelance_projects WHERE client_id = ?').get(project.client_id).t;
+      db.prepare('UPDATE freelance_clients SET total_revenue = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(totalRevenue, project.client_id);
+    }
+  }
+}
+
+export function deleteFreelanceProject(id) {
+  const db = getDb();
+  const project = db.prepare('SELECT client_id FROM freelance_projects WHERE id = ?').get(id);
+  db.prepare('DELETE FROM freelance_milestones WHERE project_id = ?').run(id);
+  db.prepare('DELETE FROM freelance_finances WHERE project_id = ?').run(id);
+  db.prepare('DELETE FROM freelance_projects WHERE id = ?').run(id);
+  if (project) {
+    db.prepare('UPDATE freelance_clients SET projects_count = MAX(0, projects_count - 1), updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(project.client_id);
+  }
+}
+
+// === FREELANCE MILESTONES ===
+
+export function insertFreelanceMilestone(milestone) {
+  return getDb().prepare(`
+    INSERT INTO freelance_milestones (project_id, title, description, amount, status, due_date)
+    VALUES (@project_id, @title, @description, @amount, @status, @due_date)
+  `).run({
+    project_id: milestone.project_id, title: milestone.title,
+    description: milestone.description || null, amount: milestone.amount || null,
+    status: milestone.status || 'pending', due_date: milestone.due_date || null,
+  });
+}
+
+export function updateFreelanceMilestone(id, updates) {
+  const db = getDb();
+  const allowed = ['title', 'description', 'amount', 'status', 'due_date', 'completed_at', 'paid_at'];
+  const sets = [];
+  const params = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (allowed.includes(key)) { sets.push(`${key} = ?`); params.push(value); }
+  }
+  if (sets.length === 0) return;
+  params.push(id);
+  db.prepare(`UPDATE freelance_milestones SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+}
+
+export function deleteFreelanceMilestone(id) {
+  getDb().prepare('DELETE FROM freelance_milestones WHERE id = ?').run(id);
+}
+
+// === FREELANCE FINANCES ===
+
+export function getFreelanceFinances({ type, category, date_from, date_to, project_id, client_id, page = 1, limit = 50 } = {}) {
+  const db = getDb();
+  const conditions = [];
+  const params = [];
+
+  if (type) { conditions.push('f.type = ?'); params.push(type); }
+  if (category) { conditions.push('f.category = ?'); params.push(category); }
+  if (date_from) { conditions.push('f.date >= ?'); params.push(date_from); }
+  if (date_to) { conditions.push('f.date <= ?'); params.push(date_to); }
+  if (project_id) { conditions.push('f.project_id = ?'); params.push(project_id); }
+  if (client_id) { conditions.push('f.client_id = ?'); params.push(client_id); }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+
+  const total = db.prepare(`SELECT COUNT(*) as c FROM freelance_finances f ${where}`).get(...params).c;
+  const finances = db.prepare(`
+    SELECT f.*, p.name as project_name, c.name as client_name
+    FROM freelance_finances f
+    LEFT JOIN freelance_projects p ON f.project_id = p.id
+    LEFT JOIN freelance_clients c ON f.client_id = c.id
+    ${where} ORDER BY f.date DESC LIMIT ? OFFSET ?
+  `).all(...params, parseInt(limit), offset);
+
+  return { finances, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } };
+}
+
+export function getFreelanceFinanceSummary(period = 'month') {
+  const db = getDb();
+  const dateFilter = period === 'year'
+    ? "strftime('%Y', date) = strftime('%Y', 'now')"
+    : "strftime('%Y-%m', date) = strftime('%Y-%m', 'now')";
+
+  const income = db.prepare(`SELECT COALESCE(SUM(amount), 0) as t FROM freelance_finances WHERE type = 'income' AND ${dateFilter}`).get().t;
+  const expenses = db.prepare(`SELECT COALESCE(SUM(amount), 0) as t FROM freelance_finances WHERE type = 'expense' AND ${dateFilter}`).get().t;
+  const balance = income - expenses;
+
+  const byCategory = db.prepare(`
+    SELECT category, type, SUM(amount) as total FROM freelance_finances WHERE ${dateFilter} GROUP BY category, type ORDER BY total DESC
+  `).all();
+
+  const byClient = db.prepare(`
+    SELECT c.name as client_name, SUM(f.amount) as total
+    FROM freelance_finances f
+    JOIN freelance_clients c ON f.client_id = c.id
+    WHERE f.type = 'income' AND ${dateFilter}
+    GROUP BY f.client_id ORDER BY total DESC
+  `).all();
+
+  // Últimos 6 meses
+  const monthly = db.prepare(`
+    SELECT strftime('%Y-%m', date) as month,
+      SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
+      SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expenses
+    FROM freelance_finances
+    WHERE date >= date('now', '-6 months')
+    GROUP BY strftime('%Y-%m', date)
+    ORDER BY month ASC
+  `).all();
+
+  return { income, expenses, balance, byCategory, byClient, monthly };
+}
+
+export function insertFreelanceFinance(finance) {
+  return getDb().prepare(`
+    INSERT INTO freelance_finances (type, category, amount, currency, description, project_id, client_id, date, invoice_number, invoice_url, tax_deductible, recurring, recurring_period, notes)
+    VALUES (@type, @category, @amount, @currency, @description, @project_id, @client_id, @date, @invoice_number, @invoice_url, @tax_deductible, @recurring, @recurring_period, @notes)
+  `).run({
+    type: finance.type, category: finance.category, amount: finance.amount,
+    currency: finance.currency || 'EUR', description: finance.description || null,
+    project_id: finance.project_id || null, client_id: finance.client_id || null,
+    date: finance.date, invoice_number: finance.invoice_number || null,
+    invoice_url: finance.invoice_url || null, tax_deductible: finance.tax_deductible ? 1 : 0,
+    recurring: finance.recurring ? 1 : 0, recurring_period: finance.recurring_period || null,
+    notes: finance.notes || null,
+  });
+}
+
+export function updateFreelanceFinance(id, updates) {
+  const db = getDb();
+  const allowed = ['type', 'category', 'amount', 'currency', 'description', 'project_id', 'client_id', 'date', 'invoice_number', 'invoice_url', 'tax_deductible', 'recurring', 'recurring_period', 'notes'];
+  const sets = [];
+  const params = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (allowed.includes(key)) { sets.push(`${key} = ?`); params.push(value); }
+  }
+  if (sets.length === 0) return;
+  params.push(id);
+  db.prepare(`UPDATE freelance_finances SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+}
+
+export function deleteFreelanceFinance(id) {
+  getDb().prepare('DELETE FROM freelance_finances WHERE id = ?').run(id);
+}
+
+// === FREELANCE OPPORTUNITIES ===
+
+export function getFreelanceOpportunities({ platform, status, min_score, category, search, page = 1, limit = 20 } = {}) {
+  const db = getDb();
+  const conditions = [];
+  const params = [];
+
+  if (platform) { conditions.push('platform = ?'); params.push(platform); }
+  if (status) { conditions.push('status = ?'); params.push(status); }
+  if (min_score) { conditions.push('match_score >= ?'); params.push(parseInt(min_score)); }
+  if (category) { conditions.push('category = ?'); params.push(category); }
+  if (search) { conditions.push('(title LIKE ? OR description LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+
+  const total = db.prepare(`SELECT COUNT(*) as c FROM freelance_opportunities ${where}`).get(...params).c;
+  const opportunities = db.prepare(
+    `SELECT * FROM freelance_opportunities ${where} ORDER BY match_score DESC, found_at DESC LIMIT ? OFFSET ?`
+  ).all(...params, parseInt(limit), offset);
+
+  return { opportunities, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } };
+}
+
+export function getFreelanceOpportunityById(id) {
+  return getDb().prepare('SELECT * FROM freelance_opportunities WHERE id = ?').get(id);
+}
+
+export function insertFreelanceOpportunity(opp) {
+  return getDb().prepare(`
+    INSERT OR IGNORE INTO freelance_opportunities (platform, title, description, url, author, author_url,
+      budget_min, budget_max, budget_type, currency, skills_required, category, country, language,
+      urgency, posted_at, proposals_count, client_rating, client_spent, match_score, match_reasons, status)
+    VALUES (@platform, @title, @description, @url, @author, @author_url,
+      @budget_min, @budget_max, @budget_type, @currency, @skills_required, @category, @country, @language,
+      @urgency, @posted_at, @proposals_count, @client_rating, @client_spent, @match_score, @match_reasons, 'new')
+  `).run({
+    platform: opp.platform, title: opp.title, description: opp.description || null,
+    url: opp.url, author: opp.author || null, author_url: opp.author_url || null,
+    budget_min: opp.budget_min || null, budget_max: opp.budget_max || null,
+    budget_type: opp.budget_type || null, currency: opp.currency || 'USD',
+    skills_required: opp.skills_required ? JSON.stringify(opp.skills_required) : null,
+    category: opp.category || null, country: opp.country || null, language: opp.language || 'en',
+    urgency: opp.urgency || null, posted_at: opp.posted_at || null,
+    proposals_count: opp.proposals_count || null, client_rating: opp.client_rating || null,
+    client_spent: opp.client_spent || null, match_score: opp.match_score || 0,
+    match_reasons: opp.match_reasons ? JSON.stringify(opp.match_reasons) : null,
+  });
+}
+
+export function updateFreelanceOpportunity(id, updates) {
+  const db = getDb();
+  const allowed = ['status', 'notes', 'proposal_text', 'applied_at', 'match_score', 'match_reasons'];
+  const sets = [];
+  const params = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (allowed.includes(key)) { sets.push(`${key} = ?`); params.push(value); }
+  }
+  if (sets.length === 0) return;
+  sets.push("updated_at = CURRENT_TIMESTAMP");
+  params.push(id);
+  db.prepare(`UPDATE freelance_opportunities SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+}
+
+// === FREELANCE PROFILE ===
+
+export function getFreelanceProfile() {
+  return getDb().prepare('SELECT key, value FROM freelance_profile').all()
+    .reduce((acc, row) => { acc[row.key] = row.value; return acc; }, {});
+}
+
+export function setFreelanceProfile(key, value) {
+  getDb().prepare('INSERT OR REPLACE INTO freelance_profile (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(key, String(value));
+}
+
+export function setFreelanceProfileBulk(entries) {
+  const db = getDb();
+  const stmt = db.prepare('INSERT OR REPLACE INTO freelance_profile (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)');
+  const run = db.transaction((entries) => {
+    for (const [key, value] of Object.entries(entries)) {
+      stmt.run(key, String(value));
+    }
+  });
+  run(entries);
+}
+
+// === PLATFORM BALANCES ===
+
+export function getPlatformBalances() {
+  return getDb().prepare('SELECT * FROM platform_balances ORDER BY platform ASC').all();
+}
+
+export function getPlatformBalance(platform) {
+  return getDb().prepare('SELECT * FROM platform_balances WHERE platform = ?').get(platform);
+}
+
+export function upsertPlatformBalance(balance) {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO platform_balances (platform, credits_balance, credits_unit, cost_per_credit, cost_currency, monthly_free_credits, subscription_plan, subscription_cost, notes, updated_at)
+    VALUES (@platform, @credits_balance, @credits_unit, @cost_per_credit, @cost_currency, @monthly_free_credits, @subscription_plan, @subscription_cost, @notes, CURRENT_TIMESTAMP)
+    ON CONFLICT(platform) DO UPDATE SET
+      credits_balance = @credits_balance, credits_unit = @credits_unit, cost_per_credit = @cost_per_credit,
+      cost_currency = @cost_currency, monthly_free_credits = @monthly_free_credits,
+      subscription_plan = @subscription_plan, subscription_cost = @subscription_cost,
+      notes = @notes, updated_at = CURRENT_TIMESTAMP
+  `).run({
+    platform: balance.platform, credits_balance: balance.credits_balance || 0,
+    credits_unit: balance.credits_unit || 'connects', cost_per_credit: balance.cost_per_credit || 0,
+    cost_currency: balance.cost_currency || 'USD', monthly_free_credits: balance.monthly_free_credits || 0,
+    subscription_plan: balance.subscription_plan || null, subscription_cost: balance.subscription_cost || 0,
+    notes: balance.notes || null,
+  });
+}
+
+export function addPlatformCredits(platform, amount, description = 'Recarga manual') {
+  const db = getDb();
+  const current = db.prepare('SELECT credits_balance FROM platform_balances WHERE platform = ?').get(platform);
+  if (!current) return null;
+
+  const newBalance = current.credits_balance + amount;
+  db.prepare('UPDATE platform_balances SET credits_balance = ?, last_refill_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE platform = ?').run(newBalance, platform);
+
+  db.prepare(`
+    INSERT INTO platform_credit_transactions (platform, type, amount, balance_after, description)
+    VALUES (?, 'refill', ?, ?, ?)
+  `).run(platform, amount, newBalance, description);
+
+  return newBalance;
+}
+
+export function spendPlatformCredits(platform, amount, opportunityId = null, description = 'Aplicación a proyecto') {
+  const db = getDb();
+  const current = db.prepare('SELECT credits_balance FROM platform_balances WHERE platform = ?').get(platform);
+  if (!current || current.credits_balance < amount) return null;
+
+  const newBalance = current.credits_balance - amount;
+  db.prepare('UPDATE platform_balances SET credits_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE platform = ?').run(newBalance, platform);
+
+  db.prepare(`
+    INSERT INTO platform_credit_transactions (platform, type, amount, balance_after, opportunity_id, description)
+    VALUES (?, 'spend', ?, ?, ?, ?)
+  `).run(platform, -amount, newBalance, opportunityId, description);
+
+  return newBalance;
+}
+
+export function getPlatformCreditHistory(platform, limit = 50) {
+  return getDb().prepare(`
+    SELECT t.*, o.title as opportunity_title
+    FROM platform_credit_transactions t
+    LEFT JOIN freelance_opportunities o ON t.opportunity_id = o.id
+    WHERE t.platform = ?
+    ORDER BY t.created_at DESC LIMIT ?
+  `).all(platform, limit);
+}
+
+// === FREELANCE STATS ===
+
+export function getFreelanceStats() {
+  const db = getDb();
+  return {
+    clients: {
+      total: db.prepare('SELECT COUNT(*) as c FROM freelance_clients').get().c,
+      active: db.prepare("SELECT COUNT(*) as c FROM freelance_clients WHERE status = 'active'").get().c,
+      prospects: db.prepare("SELECT COUNT(*) as c FROM freelance_clients WHERE status = 'prospect'").get().c,
+    },
+    projects: {
+      total: db.prepare('SELECT COUNT(*) as c FROM freelance_projects').get().c,
+      active: db.prepare("SELECT COUNT(*) as c FROM freelance_projects WHERE status = 'in_progress'").get().c,
+      proposals: db.prepare("SELECT COUNT(*) as c FROM freelance_projects WHERE status = 'proposal'").get().c,
+      delivered: db.prepare("SELECT COUNT(*) as c FROM freelance_projects WHERE status = 'delivered'").get().c,
+      paid: db.prepare("SELECT COUNT(*) as c FROM freelance_projects WHERE status = 'paid'").get().c,
+    },
+    opportunities: {
+      total: db.prepare('SELECT COUNT(*) as c FROM freelance_opportunities').get().c,
+      hot: db.prepare("SELECT COUNT(*) as c FROM freelance_opportunities WHERE match_score >= 70").get().c,
+      applied: db.prepare("SELECT COUNT(*) as c FROM freelance_opportunities WHERE status = 'applied'").get().c,
+      won: db.prepare("SELECT COUNT(*) as c FROM freelance_opportunities WHERE status = 'won'").get().c,
+    },
+    revenue: {
+      thisMonth: db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM freelance_finances WHERE type = 'income' AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')").get().t,
+      lastMonth: db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM freelance_finances WHERE type = 'income' AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now', '-1 month')").get().t,
+      thisYear: db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM freelance_finances WHERE type = 'income' AND strftime('%Y', date) = strftime('%Y', 'now')").get().t,
+    },
+    expenses: {
+      thisMonth: db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM freelance_finances WHERE type = 'expense' AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')").get().t,
+      thisYear: db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM freelance_finances WHERE type = 'expense' AND strftime('%Y', date) = strftime('%Y', 'now')").get().t,
+    },
+  };
+}
+
+// === TIME ENTRIES ===
+
+export function getTimeEntries(projectId, { page = 1, limit = 50 } = {}) {
+  const db = getDb();
+  const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+  const total = db.prepare('SELECT COUNT(*) as c FROM time_entries WHERE project_id = ?').get(projectId).c;
+  const entries = db.prepare(
+    'SELECT * FROM time_entries WHERE project_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?'
+  ).all(projectId, parseInt(limit), offset);
+  return { entries, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } };
+}
+
+export function getActiveTimer(projectId) {
+  return getDb().prepare('SELECT * FROM time_entries WHERE project_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1').get(projectId);
+}
+
+export function getAnyActiveTimer() {
+  return getDb().prepare('SELECT te.*, fp.name as project_name FROM time_entries te JOIN freelance_projects fp ON te.project_id = fp.id WHERE te.ended_at IS NULL ORDER BY te.started_at DESC LIMIT 1').get();
+}
+
+export function startTimer(projectId, description) {
+  const db = getDb();
+  // Parar cualquier timer activo en este proyecto
+  const active = getActiveTimer(projectId);
+  if (active) stopTimer(active.id);
+
+  return db.prepare(
+    'INSERT INTO time_entries (project_id, description, started_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
+  ).run(projectId, description || null);
+}
+
+export function stopTimer(entryId) {
+  const db = getDb();
+  const entry = db.prepare('SELECT * FROM time_entries WHERE id = ?').get(entryId);
+  if (!entry || entry.ended_at) return null;
+
+  const duration = (Date.now() - new Date(entry.started_at).getTime()) / 60000;
+  db.prepare('UPDATE time_entries SET ended_at = CURRENT_TIMESTAMP, duration_minutes = ? WHERE id = ?').run(Math.round(duration * 100) / 100, entryId);
+
+  // Actualizar hours_logged del proyecto
+  const totalMinutes = db.prepare('SELECT COALESCE(SUM(duration_minutes), 0) as t FROM time_entries WHERE project_id = ? AND duration_minutes IS NOT NULL').get(entry.project_id).t;
+  db.prepare('UPDATE freelance_projects SET hours_logged = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(Math.round(totalMinutes / 60 * 100) / 100, entry.project_id);
+
+  return db.prepare('SELECT * FROM time_entries WHERE id = ?').get(entryId);
+}
+
+export function deleteTimeEntry(id) {
+  const db = getDb();
+  const entry = db.prepare('SELECT project_id FROM time_entries WHERE id = ?').get(id);
+  db.prepare('DELETE FROM time_entries WHERE id = ?').run(id);
+  if (entry) {
+    const totalMinutes = db.prepare('SELECT COALESCE(SUM(duration_minutes), 0) as t FROM time_entries WHERE project_id = ? AND duration_minutes IS NOT NULL').get(entry.project_id).t;
+    db.prepare('UPDATE freelance_projects SET hours_logged = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(Math.round(totalMinutes / 60 * 100) / 100, entry.project_id);
+  }
+}
+
+// === INVOICES ===
+
+export function getInvoices({ client_id, status, page = 1, limit = 20 } = {}) {
+  const db = getDb();
+  const conditions = [];
+  const params = [];
+  if (client_id) { conditions.push('i.client_id = ?'); params.push(parseInt(client_id)); }
+  if (status) { conditions.push('i.status = ?'); params.push(status); }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+  const total = db.prepare(`SELECT COUNT(*) as c FROM invoices i ${where}`).get(...params).c;
+  const invoices = db.prepare(
+    `SELECT i.*, fc.name as client_name FROM invoices i LEFT JOIN freelance_clients fc ON i.client_id = fc.id ${where} ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
+  ).all(...params, parseInt(limit), offset);
+  return { invoices, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } };
+}
+
+export function getInvoiceById(id) {
+  const db = getDb();
+  const invoice = db.prepare('SELECT i.*, fc.name as client_name, fc.email as client_email, fc.company as client_company FROM invoices i LEFT JOIN freelance_clients fc ON i.client_id = fc.id WHERE i.id = ?').get(id);
+  return invoice;
+}
+
+export function getNextInvoiceNumber() {
+  const db = getDb();
+  const year = new Date().getFullYear();
+  const prefix = `T800-${year}-`;
+  const last = db.prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE ? ORDER BY id DESC LIMIT 1").get(`${prefix}%`);
+  if (!last) return `${prefix}001`;
+  const num = parseInt(last.invoice_number.replace(prefix, '')) + 1;
+  return `${prefix}${String(num).padStart(3, '0')}`;
+}
+
+export function insertInvoice(invoice) {
+  const db = getDb();
+  const number = invoice.invoice_number || getNextInvoiceNumber();
+  const taxAmount = (invoice.amount || 0) * ((invoice.tax_rate || 21) / 100);
+  const total = (invoice.amount || 0) + taxAmount;
+  return db.prepare(`
+    INSERT INTO invoices (invoice_number, client_id, project_id, amount, currency, tax_rate, tax_amount, total, status, issued_at, due_at, notes, items)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    number, invoice.client_id, invoice.project_id || null, invoice.amount, invoice.currency || 'EUR',
+    invoice.tax_rate ?? 21, taxAmount, total, invoice.status || 'draft',
+    invoice.issued_at || null, invoice.due_at || null, invoice.notes || null,
+    invoice.items ? JSON.stringify(invoice.items) : null
+  );
+}
+
+export function updateInvoice(id, updates) {
+  const db = getDb();
+  const allowed = ['status', 'amount', 'tax_rate', 'notes', 'items', 'issued_at', 'due_at', 'paid_at'];
+  const sets = [];
+  const params = [];
+  for (const [key, value] of Object.entries(updates)) {
+    if (allowed.includes(key)) { sets.push(`${key} = ?`); params.push(key === 'items' ? JSON.stringify(value) : value); }
+  }
+  if (updates.amount !== undefined || updates.tax_rate !== undefined) {
+    const current = db.prepare('SELECT amount, tax_rate FROM invoices WHERE id = ?').get(id);
+    const amount = updates.amount ?? current.amount;
+    const taxRate = updates.tax_rate ?? current.tax_rate;
+    const taxAmount = amount * (taxRate / 100);
+    sets.push('tax_amount = ?', 'total = ?');
+    params.push(taxAmount, amount + taxAmount);
+  }
+  if (sets.length === 0) return;
+  params.push(id);
+  db.prepare(`UPDATE invoices SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+}
+
+export function deleteInvoice(id) {
+  getDb().prepare('DELETE FROM invoices WHERE id = ?').run(id);
 }
 
 // Setup si se ejecuta directamente

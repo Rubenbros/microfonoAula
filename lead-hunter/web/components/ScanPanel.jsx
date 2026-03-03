@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Map, MessageSquare, Linkedin, BarChart3, ShoppingBag, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Map, MessageSquare, Linkedin, BarChart3, ShoppingBag, Loader2, CheckCircle2, XCircle, Clock, Briefcase, Code2, Zap } from 'lucide-react';
 
 const typeLabels = {
   maps: 'Google Maps',
@@ -9,6 +9,11 @@ const typeLabels = {
   fiverr: 'Fiverr',
   linkedin: 'LinkedIn',
   score: 'Scoring',
+  upwork: 'Upwork',
+  hackernews: 'HackerNews',
+  'reddit-freelance': 'Reddit FL',
+  'freelance-score': 'Score FL',
+  'linkedin-jobs': 'LinkedIn Jobs',
 };
 
 const typeColors = {
@@ -17,6 +22,11 @@ const typeColors = {
   fiverr: 'emerald',
   linkedin: 'sky',
   score: 'green',
+  upwork: 'emerald',
+  hackernews: 'orange',
+  'reddit-freelance': 'orange',
+  'freelance-score': 'green',
+  'linkedin-jobs': 'sky',
 };
 
 const colorMap = {
@@ -104,6 +114,11 @@ export default function ScanPanel({ config, initialHistory }) {
     fiverr: { loading: false, result: null, error: null, jobId: null },
     linkedin: { loading: false, result: null, error: null, jobId: null },
     score: { loading: false, result: null, error: null, jobId: null },
+    upwork: { loading: false, result: null, error: null, jobId: null },
+    hackernews: { loading: false, result: null, error: null, jobId: null },
+    'reddit-freelance': { loading: false, result: null, error: null, jobId: null },
+    'freelance-score': { loading: false, result: null, error: null, jobId: null },
+    'linkedin-jobs': { loading: false, result: null, error: null, jobId: null },
   });
 
   const pollIntervals = useRef({});
@@ -286,6 +301,70 @@ export default function ScanPanel({ config, initialHistory }) {
           loading={scanState.score.loading}
           result={scanState.score.result}
           error={scanState.score.error}
+        />
+      </div>
+
+      {/* Scrapers Freelance */}
+      <h2 className="text-lg font-semibold text-white mt-8">Freelance</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Upwork */}
+        <ScanCard
+          type="upwork"
+          icon={Briefcase}
+          title="Upwork"
+          description="Escanea proyectos vía RSS feeds"
+          onLaunch={() => launchScan('upwork')}
+          loading={scanState.upwork.loading}
+          result={scanState.upwork.result}
+          error={scanState.upwork.error}
+        />
+
+        {/* HackerNews */}
+        <ScanCard
+          type="hackernews"
+          icon={Code2}
+          title="Hacker News"
+          description="Thread 'Who is hiring?' mensual"
+          onLaunch={() => launchScan('hackernews')}
+          loading={scanState.hackernews.loading}
+          result={scanState.hackernews.result}
+          error={scanState.hackernews.error}
+        />
+
+        {/* Reddit Freelance */}
+        <ScanCard
+          type="reddit-freelance"
+          icon={MessageSquare}
+          title="Reddit Freelance"
+          description="r/forhire, r/freelance, r/remotejs..."
+          onLaunch={() => launchScan('reddit-freelance')}
+          loading={scanState['reddit-freelance'].loading}
+          result={scanState['reddit-freelance'].result}
+          error={scanState['reddit-freelance'].error}
+        />
+
+        {/* LinkedIn Jobs */}
+        <ScanCard
+          type="linkedin-jobs"
+          icon={Linkedin}
+          title="LinkedIn Jobs"
+          description="Ofertas freelance via Google Search"
+          onLaunch={() => launchScan('linkedin-jobs')}
+          loading={scanState['linkedin-jobs'].loading}
+          result={scanState['linkedin-jobs'].result}
+          error={scanState['linkedin-jobs'].error}
+        />
+
+        {/* Freelance Scoring */}
+        <ScanCard
+          type="freelance-score"
+          icon={Zap}
+          title="Scoring Freelance"
+          description="Puntúa oportunidades según tu perfil"
+          onLaunch={() => launchScan('freelance-score')}
+          loading={scanState['freelance-score'].loading}
+          result={scanState['freelance-score'].result}
+          error={scanState['freelance-score'].error}
         />
       </div>
 

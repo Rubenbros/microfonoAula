@@ -11,6 +11,15 @@ import settingsRouter from './routes/settings.js';
 import aiRouter from './routes/ai.js';
 import scansRouter from './routes/scans.js';
 import tasksRouter from './routes/tasks.js';
+import freelanceClientsRouter from './routes/freelance-clients.js';
+import freelanceProjectsRouter from './routes/freelance-projects.js';
+import freelanceFinancesRouter from './routes/freelance-finances.js';
+import freelanceOpportunitiesRouter from './routes/freelance-opportunities.js';
+import freelanceProfileRouter from './routes/freelance-profile.js';
+import freelanceStatsRouter from './routes/freelance-stats.js';
+import platformBalancesRouter from './routes/platform-balances.js';
+import freelanceAiRouter from './routes/freelance-ai.js';
+import freelanceInvoicesRouter from './routes/freelance-invoices.js';
 
 const log = createLogger('api');
 
@@ -57,6 +66,17 @@ export function startApiServer() {
   app.use('/api/ai', aiRouter);
   app.use('/api/scans', scansRouter);
   app.use('/api', tasksRouter);
+
+  // Rutas módulo freelance
+  app.use('/api/freelance/clients', freelanceClientsRouter);
+  app.use('/api/freelance/projects', freelanceProjectsRouter);
+  app.use('/api/freelance/finances', freelanceFinancesRouter);
+  app.use('/api/freelance/opportunities', freelanceOpportunitiesRouter);
+  app.use('/api/freelance/profile', freelanceProfileRouter);
+  app.use('/api/freelance/stats', freelanceStatsRouter);
+  app.use('/api/freelance/platforms', platformBalancesRouter);
+  app.use('/api/freelance/ai', freelanceAiRouter);
+  app.use('/api/freelance/invoices', freelanceInvoicesRouter);
 
   // Error handler global
   app.use((err, req, res, _next) => {
