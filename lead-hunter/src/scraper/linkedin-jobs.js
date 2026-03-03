@@ -5,7 +5,7 @@ import { insertFreelanceOpportunity, insertScan } from '../db/database.js';
 import { createLogger } from '../logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const log = createLogger('linkedin-jobs');
+const log = createLogger('weworkremotely');
 
 let LINKEDIN_CONFIG;
 try {
@@ -15,81 +15,58 @@ try {
   LINKEDIN_CONFIG = { enabled: false, search_queries: [] };
 }
 
+// RSS feeds de We Work Remotely por categoría
+const WWR_FEEDS = [
+  { url: 'https://weworkremotely.com/categories/remote-programming-jobs.rss', category: 'programming' },
+  { url: 'https://weworkremotely.com/categories/remote-design-jobs.rss', category: 'design' },
+  { url: 'https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss', category: 'devops' },
+];
+
 function delay(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
 /**
- * Busca oportunidades freelance en LinkedIn via Google Search (sin API)
- * Usa Google search con site:linkedin.com para encontrar posts de hiring
+ * Limpia HTML de la descripción
  */
-async function searchGoogleForLinkedIn(query) {
-  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&num=15&tbs=qdr:w`;
-
-  try {
-    const res = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
-
-    if (!res.ok) {
-      log.warn(`Google search error: ${res.status}`);
-      return [];
-    }
-
-    const html = await res.text();
-    return parseGoogleResults(html, query);
-  } catch (err) {
-    log.error(`Error buscando en Google: ${err.message}`);
-    return [];
-  }
+function cleanHtml(text) {
+  return (text || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
- * Extrae resultados de la página de Google
+ * Parsea RSS XML básico (sin dependencias)
  */
-function parseGoogleResults(html, query) {
-  const results = [];
-
-  // Buscar bloques de resultados con URLs de LinkedIn
-  const urlPattern = /https?:\/\/(?:www\.)?linkedin\.com\/(?:jobs\/view|posts|feed\/update|pulse)\/[^\s"<>]+/g;
-  const titlePattern = /<h3[^>]*>(.*?)<\/h3>/gs;
-
-  const urls = [...new Set(html.match(urlPattern) || [])];
-  const titles = [];
+function parseRssXml(xml) {
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
   let match;
-  while ((match = titlePattern.exec(html)) !== null) {
-    titles.push(match[1].replace(/<[^>]+>/g, '').trim());
-  }
 
-  for (let i = 0; i < urls.length && i < 15; i++) {
-    const url = urls[i];
-    const title = titles[i] || `LinkedIn opportunity: ${query}`;
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const itemXml = match[1];
+    const getValue = (tag) => {
+      const m = itemXml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+      return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : '';
+    };
 
-    // Extraer skills del título y query
-    const skills = extractSkills(title + ' ' + query);
-    const category = detectCategory(title + ' ' + query);
-
-    results.push({
-      platform: 'linkedin',
-      title: cleanHtml(title).slice(0, 200),
-      description: `Found via Google search: "${query}"`,
-      url,
-      category,
-      skills_required: skills,
-      language: query.toLowerCase().includes('español') || query.toLowerCase().includes('spain') ? 'es' : 'en',
-      posted_at: new Date().toISOString(),
+    items.push({
+      title: getValue('title'),
+      link: getValue('link'),
+      description: getValue('description'),
+      pubDate: getValue('pubDate'),
+      category: getValue('category'),
+      region: getValue('region'),
     });
   }
 
-  return results;
-}
-
-function cleanHtml(text) {
-  return text.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+  return items;
 }
 
 const SKILL_PATTERNS = {
@@ -99,6 +76,9 @@ const SKILL_PATTERNS = {
   automation: /\bautomation\b/i, 'full-stack': /\bfull[\s-]?stack\b/i,
   devops: /\bdevops\b/i, aws: /\baws\b/i, docker: /\bdocker\b/i,
   postgresql: /\bpostgres(?:ql)?\b/i, mongodb: /\bmongo(?:db)?\b/i,
+  ruby: /\bruby\b/i, rails: /\brails\b/i, go: /\bgolang|\bgo\b/i,
+  rust: /\brust\b/i, java: /\bjava\b(?!script)/i, php: /\bphp\b/i,
+  vue: /\bvue\.?js?\b/i, angular: /\bangular\b/i,
 };
 
 function extractSkills(text) {
@@ -111,62 +91,125 @@ function detectCategory(text) {
   const t = text.toLowerCase();
   if (/\b(?:ai|machine learning|ml|llm|gpt|chatbot)\b/.test(t)) return 'ai';
   if (/\b(?:mobile|ios|android|react native|flutter)\b/.test(t)) return 'mobile';
-  if (/\b(?:devops|cloud|infrastructure|sre)\b/.test(t)) return 'devops';
+  if (/\b(?:devops|cloud|infrastructure|sre|platform)\b/.test(t)) return 'devops';
   if (/\b(?:automation|scraping|bot)\b/.test(t)) return 'automation';
-  if (/\b(?:cto|tech lead|architect)\b/.test(t)) return 'consulting';
+  if (/\b(?:cto|tech lead|architect|engineering manager)\b/.test(t)) return 'consulting';
+  if (/\b(?:frontend|ui|ux|design)\b/.test(t)) return 'frontend';
+  if (/\b(?:backend|api|server|database)\b/.test(t)) return 'backend';
+  if (/\b(?:fullstack|full.stack)\b/.test(t)) return 'fullstack';
   return 'web';
 }
 
 /**
- * Scan principal: busca en todas las queries configuradas
+ * Filtra jobs por relevancia (coinciden con skills del perfil)
+ * Requiere al menos 1 skill match Y que sea un rol de desarrollo
+ */
+function isRelevantJob(title, description) {
+  const text = `${title} ${description}`.toLowerCase();
+
+  // Skills que encajan con nuestro perfil
+  const devSkills = [
+    'react', 'next.js', 'nextjs', 'node', 'nodejs', 'javascript', 'typescript',
+    'python', 'ai', 'automation', 'chatbot', 'web scraping', 'saas',
+    'tailwind', 'express', 'fastapi', 'django', 'postgresql', 'mongodb',
+    'docker', 'aws', 'playwright', 'selenium',
+  ];
+
+  // Roles que encajan
+  const devRoles = [
+    'developer', 'engineer', 'full stack', 'full-stack', 'fullstack',
+    'frontend', 'front-end', 'backend', 'back-end', 'tech lead',
+    'web dev', 'programmer', 'cto',
+  ];
+
+  const hasSkill = devSkills.some(s => text.includes(s));
+  const hasRole = devRoles.some(r => text.includes(r));
+
+  // Necesita al menos un skill O un rol relevante
+  return hasSkill || hasRole;
+}
+
+/**
+ * Escanea We Work Remotely RSS feeds (reemplazo de LinkedIn Jobs via Google)
  */
 export async function scanLinkedInJobs() {
   if (!LINKEDIN_CONFIG.enabled) {
-    log.info('LinkedIn Jobs scraper desactivado');
+    log.info('WeWorkRemotely scraper desactivado');
     return { total: 0, new: 0 };
   }
 
-  log.info('Iniciando scan LinkedIn Jobs via Google...');
+  log.info('=== Iniciando escaneo de We Work Remotely (reemplazo LinkedIn Jobs) ===');
   let totalFound = 0;
   let totalNew = 0;
 
-  const queries = LINKEDIN_CONFIG.search_queries || [];
+  for (const feed of WWR_FEEDS) {
+    try {
+      log.info(`  Escaneando feed: ${feed.category}`);
 
-  for (const query of queries) {
-    const fullQuery = `site:linkedin.com ${query}`;
-    log.info(`Buscando: ${fullQuery}`);
+      const response = await fetch(feed.url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'application/rss+xml, application/xml, text/xml',
+        },
+      });
 
-    const results = await searchGoogleForLinkedIn(fullQuery);
-    totalFound += results.length;
+      if (!response.ok) {
+        log.warn(`  Error HTTP ${response.status} en feed ${feed.category}`);
+        continue;
+      }
 
-    for (const opp of results) {
-      try {
-        const result = insertFreelanceOpportunity(opp);
-        if (result.changes > 0) totalNew++;
-      } catch (err) {
-        // UNIQUE constraint = ya existe
-        if (!err.message.includes('UNIQUE')) {
-          log.error(`Error insertando oportunidad LinkedIn: ${err.message}`);
+      const xml = await response.text();
+      const items = parseRssXml(xml);
+      log.info(`  ${feed.category}: ${items.length} jobs en RSS`);
+
+      // Filtrar por relevancia
+      const relevant = items.filter(item =>
+        isRelevantJob(item.title, item.description)
+      );
+      log.info(`  ${feed.category}: ${relevant.length} relevantes de ${items.length}`);
+
+      for (const item of relevant) {
+        const cleanDesc = cleanHtml(item.description);
+        const fullText = `${item.title} ${cleanDesc}`;
+        const skills = extractSkills(fullText);
+        const category = detectCategory(fullText);
+
+        const opp = {
+          platform: 'weworkremotely',
+          title: cleanHtml(item.title).slice(0, 300),
+          description: cleanDesc.slice(0, 3000),
+          url: item.link,
+          category,
+          skills_required: skills,
+          language: 'en',
+          country: item.region || 'Remote',
+          posted_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+        };
+
+        try {
+          const result = insertFreelanceOpportunity(opp);
+          if (result.changes > 0) totalNew++;
+          totalFound++;
+        } catch (err) {
+          if (!err.message.includes('UNIQUE')) {
+            log.error(`  Error insertando: ${err.message}`);
+          }
+          totalFound++; // Contar aunque sea duplicado
         }
       }
-    }
 
-    // Rate limiting entre queries
-    await delay(8000);
+      // Rate limiting entre feeds
+      await delay(2000);
+    } catch (err) {
+      log.error(`  Error en feed ${feed.category}: ${err.message}`);
+    }
   }
 
   // Registrar scan
   try {
-    insertScan({
-      zone: 'global',
-      sector: 'linkedin-jobs',
-      type: 'linkedin-jobs',
-      source: 'linkedin',
-      results_count: totalFound,
-      new_leads: totalNew,
-    });
+    insertScan('weworkremotely', 'freelance', totalFound, totalNew, 'freelance', 'weworkremotely');
   } catch {}
 
-  log.info(`LinkedIn Jobs scan completado: ${totalFound} encontradas, ${totalNew} nuevas`);
+  log.info(`=== WeWorkRemotely completado: ${totalFound} encontradas, ${totalNew} nuevas ===`);
   return { total: totalFound, new: totalNew };
 }

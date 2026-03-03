@@ -357,40 +357,65 @@ function parsePrice(price) {
 
 /**
  * Escanea todas las categorías configuradas
+ * NOTA: Fiverr bloquea peticiones HTTP con Cloudflare (403/captcha).
+ * Este scraper requiere Playwright para funcionar, lo cual no está implementado aún.
+ * Por ahora devuelve error informativo.
  */
 export async function scanAllFiverr() {
-  log.info('=== Iniciando escaneo de Fiverr ===');
-  const allGigs = [];
+  log.warn('=== Fiverr: DESACTIVADO — Cloudflare bloquea peticiones HTTP ===');
+  log.warn('  Fiverr requiere navegador real (Playwright) para scraping.');
+  log.warn('  Usa RemoteOK, HackerNews o Reddit Freelance como alternativas.');
 
-  for (const query of FIVERR_SEARCHES) {
-    try {
-      const gigs = await scanFiverrCategory(query);
-      allGigs.push(...gigs);
-      // Delay entre categorías
-      await delay(DEFAULT_DELAY_MS);
-    } catch (err) {
-      log.error(`Error escaneando categoría "${query}": ${err.message}`);
+  // Intentar una petición de prueba para verificar si sigue bloqueado
+  try {
+    const testRes = await fetch('https://www.fiverr.com/search/gigs?query=web+development', {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Accept': 'text/html,application/xhtml+xml',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-User': '?1',
+        'Sec-Fetch-Dest': 'document',
+        'Upgrade-Insecure-Requests': '1',
+      },
+    });
+
+    const html = await testRes.text();
+    // Si devuelve captcha ("It needs a human touch") o 403, está bloqueado
+    if (!testRes.ok || html.includes('human touch') || html.includes('challenge-platform')) {
+      log.warn(`  Confirmado: Fiverr sigue bloqueado (status ${testRes.status})`);
+      return { total: 0, new: 0, error: 'Fiverr bloqueado por Cloudflare — requiere Playwright' };
     }
+
+    // Si por algún milagro funciona, ejecutar el scan normal
+    log.info('  Fiverr accesible! Ejecutando scan...');
+    const allGigs = [];
+
+    for (const query of FIVERR_SEARCHES) {
+      try {
+        const gigs = await scanFiverrCategory(query);
+        allGigs.push(...gigs);
+        await delay(DEFAULT_DELAY_MS);
+      } catch (err) {
+        log.error(`Error escaneando categoría "${query}": ${err.message}`);
+      }
+    }
+
+    const seen = new Set();
+    const uniqueGigs = allGigs.filter(gig => {
+      if (!gig.source_id || seen.has(gig.source_id)) return false;
+      seen.add(gig.source_id);
+      return true;
+    });
+
+    const saved = await saveFiverrResults(uniqueGigs);
+    log.info(`=== Fiverr completado: ${uniqueGigs.length} gigs, ${saved.new} nuevos ===`);
+    insertScan('fiverr', 'all', uniqueGigs.length, saved.new, 'online', 'fiverr');
+    return { total: uniqueGigs.length, new: saved.new };
+  } catch (err) {
+    log.error(`Error verificando Fiverr: ${err.message}`);
+    return { total: 0, new: 0, error: 'Fiverr inaccesible' };
   }
-
-  // Deduplicar por source_id antes de guardar
-  const seen = new Set();
-  const uniqueGigs = allGigs.filter(gig => {
-    if (!gig.source_id || seen.has(gig.source_id)) return false;
-    seen.add(gig.source_id);
-    return true;
-  });
-
-  log.info(`Total gigs (sin dedup): ${allGigs.length}, únicos: ${uniqueGigs.length}`);
-
-  // Guardar en BD
-  const saved = await saveFiverrResults(uniqueGigs);
-  log.info(`=== Fiverr completado: ${uniqueGigs.length} gigs, ${saved.new} nuevos ===`);
-
-  // Registrar escaneo
-  insertScan('fiverr', 'all', uniqueGigs.length, saved.new, 'online', 'fiverr');
-
-  return { total: uniqueGigs.length, new: saved.new };
 }
 
 /**

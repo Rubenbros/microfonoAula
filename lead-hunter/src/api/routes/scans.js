@@ -179,14 +179,14 @@ router.post('/score', (req, res) => {
   })();
 });
 
-// POST /api/scans/upwork — Lanzar scan Upwork (RSS)
+// POST /api/scans/upwork — Lanzar scan RemoteOK (reemplazo de Upwork RSS eliminado)
 router.post('/upwork', (req, res) => {
   const job = createJob('upwork', {});
-  res.status(202).json({ jobId: job.id, message: 'Scan Upwork iniciado' });
+  res.status(202).json({ jobId: job.id, message: 'Scan RemoteOK iniciado' });
 
   (async () => {
     try {
-      updateJobProgress(job.id, 'Escaneando Upwork RSS feeds...');
+      updateJobProgress(job.id, 'Escaneando RemoteOK API...');
       const result = await scanAllUpwork();
       completeJob(job.id, { found: result.total, new: result.new });
     } catch (err) {
@@ -227,14 +227,14 @@ router.post('/reddit-freelance', (req, res) => {
   })();
 });
 
-// POST /api/scans/linkedin-jobs — Lanzar scan LinkedIn Jobs (via Google)
+// POST /api/scans/linkedin-jobs — Lanzar scan WeWorkRemotely (reemplazo de LinkedIn Jobs via Google)
 router.post('/linkedin-jobs', (req, res) => {
   const job = createJob('linkedin-jobs', {});
-  res.status(202).json({ jobId: job.id, message: 'Scan LinkedIn Jobs iniciado' });
+  res.status(202).json({ jobId: job.id, message: 'Scan WeWorkRemotely iniciado' });
 
   (async () => {
     try {
-      updateJobProgress(job.id, 'Escaneando LinkedIn Jobs via Google...');
+      updateJobProgress(job.id, 'Escaneando WeWorkRemotely RSS...');
       const result = await scanLinkedInJobs();
       completeJob(job.id, { found: result.total, new: result.new });
     } catch (err) {

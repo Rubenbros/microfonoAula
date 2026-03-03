@@ -5,9 +5,9 @@ import { insertFreelanceOpportunity, insertScan } from '../db/database.js';
 import { createLogger } from '../logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const log = createLogger('upwork');
+const log = createLogger('remoteok');
 
-// Cargar configuración
+// Cargar configuración (reusa keywords de upwork config)
 let UPWORK_CONFIG;
 try {
   const config = JSON.parse(readFileSync(join(__dirname, '../../config/freelance_sources.json'), 'utf-8'));
@@ -21,51 +21,7 @@ function delay(ms) {
 }
 
 /**
- * Parsea un item RSS de Upwork y extrae datos estructurados
- */
-function parseUpworkRssItem(item) {
-  const title = item.title || '';
-  const description = item.description || '';
-  const link = item.link || '';
-  const pubDate = item.pubDate || '';
-
-  // Extraer budget del texto
-  const budget = extractUpworkBudget(description);
-
-  // Extraer skills
-  const skills = extractSkills(description);
-
-  // Extraer categoría
-  const category = detectCategory(title + ' ' + description);
-
-  // Extraer país del cliente
-  const country = extractCountry(description);
-
-  return {
-    platform: 'upwork',
-    title: title.slice(0, 300),
-    description: cleanHtml(description).slice(0, 3000),
-    url: link,
-    author: null,
-    author_url: null,
-    budget_min: budget.min,
-    budget_max: budget.max,
-    budget_type: budget.type,
-    currency: 'USD',
-    skills_required: skills,
-    category,
-    country,
-    language: 'en',
-    urgency: detectUrgency(description),
-    posted_at: pubDate ? new Date(pubDate).toISOString() : null,
-    proposals_count: extractProposalsCount(description),
-    client_rating: null,
-    client_spent: null,
-  };
-}
-
-/**
- * Limpia HTML de la descripción RSS
+ * Limpia HTML de la descripción
  */
 function cleanHtml(html) {
   return html
@@ -80,47 +36,9 @@ function cleanHtml(html) {
 }
 
 /**
- * Extrae budget de la descripción de Upwork
+ * Extrae skills de tags y descripción
  */
-function extractUpworkBudget(text) {
-  const clean = cleanHtml(text);
-
-  // Hourly: $X-$Y/hr
-  const hourlyMatch = clean.match(/\$(\d+(?:\.\d+)?)\s*[-–]\s*\$(\d+(?:\.\d+)?)\s*\/?\s*(?:hr|hour)/i);
-  if (hourlyMatch) {
-    return { min: parseFloat(hourlyMatch[1]), max: parseFloat(hourlyMatch[2]), type: 'hourly' };
-  }
-
-  // Fixed-price budget range
-  const fixedRange = clean.match(/Budget\s*:\s*\$(\d[\d,]*)\s*[-–]\s*\$(\d[\d,]*)/i);
-  if (fixedRange) {
-    return { min: parseFloat(fixedRange[1].replace(/,/g, '')), max: parseFloat(fixedRange[2].replace(/,/g, '')), type: 'fixed' };
-  }
-
-  // Fixed-price single value
-  const fixedSingle = clean.match(/Budget\s*:\s*\$(\d[\d,]*)/i);
-  if (fixedSingle) {
-    const val = parseFloat(fixedSingle[1].replace(/,/g, ''));
-    return { min: val, max: val, type: 'fixed' };
-  }
-
-  // Generic dollar amounts
-  const dollarMatch = clean.match(/\$(\d[\d,]+)/);
-  if (dollarMatch) {
-    const val = parseFloat(dollarMatch[1].replace(/,/g, ''));
-    if (val >= 50 && val <= 500000) {
-      return { min: val, max: val, type: 'fixed' };
-    }
-  }
-
-  return { min: null, max: null, type: null };
-}
-
-/**
- * Extrae skills de la descripción
- */
-function extractSkills(text) {
-  const clean = cleanHtml(text).toLowerCase();
+function extractSkills(tags, description) {
   const allSkills = [
     'react', 'nextjs', 'next.js', 'vue', 'angular', 'svelte',
     'node', 'nodejs', 'node.js', 'express', 'nestjs',
@@ -136,7 +54,8 @@ function extractSkills(text) {
     'mobile', 'react native', 'flutter', 'ios', 'android',
   ];
 
-  return allSkills.filter(skill => clean.includes(skill));
+  const text = [...(tags || []), cleanHtml(description || '')].join(' ').toLowerCase();
+  return allSkills.filter(skill => text.includes(skill));
 }
 
 /**
@@ -153,6 +72,7 @@ function detectCategory(text) {
   if (/\b(frontend|ui|ux|design|figma|landing)\b/.test(t)) return 'frontend';
   if (/\b(fullstack|full stack|full-stack|saas)\b/.test(t)) return 'fullstack';
   if (/\b(consult|architect|review|audit|mentor|cto|tech lead)\b/.test(t)) return 'consulting';
+  if (/\b(devops|cloud|infrastructure|sre|ci\/cd)\b/.test(t)) return 'devops';
   return 'web';
 }
 
@@ -160,134 +80,140 @@ function detectCategory(text) {
  * Detecta urgencia
  */
 function detectUrgency(text) {
-  const t = cleanHtml(text).toLowerCase();
+  const t = (text || '').toLowerCase();
   if (/\b(asap|urgent|immediately|right away|rush|today|tonight)\b/.test(t)) return 'high';
   if (/\b(soon|this week|next week|quickly|fast)\b/.test(t)) return 'medium';
   return 'low';
 }
 
+// Tags relevantes para nuestro perfil (derivados de las keywords del config)
+const RELEVANT_TAGS = [
+  'react', 'nextjs', 'next.js', 'nodejs', 'node.js', 'node',
+  'javascript', 'typescript', 'python', 'django', 'fastapi',
+  'full stack', 'fullstack', 'full-stack', 'frontend', 'front end', 'front-end',
+  'backend', 'back end', 'back-end',
+  'ai', 'machine learning', 'ml', 'llm', 'chatbot', 'openai',
+  'automation', 'scraping', 'web scraping',
+  'saas', 'startup',
+  'software engineer', 'developer', 'dev',
+  'devops', 'docker', 'aws', 'cloud',
+  'api', 'graphql', 'rest',
+  'tech lead', 'engineering manager',
+];
+
 /**
- * Extrae país del cliente
+ * Filtra jobs de RemoteOK que son relevantes para nuestro perfil
+ * Matching amplio: cualquier tag o palabra del título que coincida
  */
-function extractCountry(text) {
-  const clean = cleanHtml(text);
-  const countryMatch = clean.match(/Country\s*:\s*([A-Za-z\s]+?)(?:\s*[|<]|\s{2})/i);
-  if (countryMatch) return countryMatch[1].trim();
-  return null;
+function matchesKeywords(job) {
+  const text = [
+    job.position || '',
+    ...(job.tags || []),
+    job.company || '',
+    job.description ? cleanHtml(job.description).slice(0, 500) : '',
+  ].join(' ').toLowerCase();
+
+  return RELEVANT_TAGS.some(tag => text.includes(tag));
 }
 
 /**
- * Extrae número de propuestas
+ * Parsea un job de RemoteOK al formato freelance_opportunities
  */
-function extractProposalsCount(text) {
-  const clean = cleanHtml(text);
-  const match = clean.match(/(\d+)\s*(?:to\s*\d+\s*)?proposals?/i);
-  if (match) return parseInt(match[1]);
-  return null;
+function parseRemoteOkJob(job) {
+  const description = cleanHtml(job.description || '');
+  const skills = extractSkills(job.tags, description);
+  const fullText = `${job.position || ''} ${description} ${(job.tags || []).join(' ')}`;
+  const category = detectCategory(fullText);
+
+  return {
+    platform: 'remoteok',
+    title: (job.position || 'Remote Job').slice(0, 300),
+    description: description.slice(0, 3000),
+    url: job.url || `https://remoteok.com/remote-jobs/${job.slug}`,
+    author: job.company || null,
+    author_url: null,
+    budget_min: job.salary_min > 0 ? job.salary_min : null,
+    budget_max: job.salary_max > 0 ? job.salary_max : null,
+    budget_type: (job.salary_min > 0 || job.salary_max > 0) ? 'yearly' : null,
+    currency: 'USD',
+    skills_required: skills,
+    category,
+    country: job.location || null,
+    language: 'en',
+    urgency: detectUrgency(description),
+    posted_at: job.date || null,
+    proposals_count: null,
+    client_rating: null,
+    client_spent: null,
+  };
 }
 
 /**
- * Parsea RSS XML básico (sin dependencias XML)
- */
-function parseRssXml(xml) {
-  const items = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-  let match;
-
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const itemXml = match[1];
-    const getValue = (tag) => {
-      const m = itemXml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
-      return m ? m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim() : '';
-    };
-
-    items.push({
-      title: getValue('title'),
-      link: getValue('link'),
-      description: getValue('description'),
-      pubDate: getValue('pubDate'),
-    });
-  }
-
-  return items;
-}
-
-/**
- * Escanea Upwork por una keyword vía RSS público
- */
-export async function scanUpworkKeyword(keyword) {
-  const encodedKeyword = encodeURIComponent(keyword);
-  const url = `https://www.upwork.com/ab/feed/jobs/rss?q=${encodedKeyword}&sort=recency`;
-
-  log.info(`  Buscando: "${keyword}"`);
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'application/rss+xml, application/xml, text/xml',
-      },
-    });
-
-    if (response.status === 429) {
-      log.warn(`  Rate limit para "${keyword}", esperando 30s...`);
-      await delay(30000);
-      return [];
-    }
-
-    if (!response.ok) {
-      log.error(`  Error HTTP ${response.status} para "${keyword}"`);
-      return [];
-    }
-
-    const xml = await response.text();
-    const items = parseRssXml(xml);
-
-    log.info(`  "${keyword}": ${items.length} resultados`);
-    return items.map(item => parseUpworkRssItem(item));
-  } catch (err) {
-    log.error(`  Error buscando "${keyword}": ${err.message}`);
-    return [];
-  }
-}
-
-/**
- * Escanea todas las keywords configuradas de Upwork
+ * Escanea RemoteOK API (reemplazo de Upwork RSS que fue eliminado)
+ * RemoteOK tiene una API JSON pública y gratuita
  */
 export async function scanAllUpwork() {
   if (!UPWORK_CONFIG.enabled) {
-    log.info('Upwork scraper desactivado');
+    log.info('RemoteOK scraper desactivado');
     return { total: 0, new: 0 };
   }
 
-  log.info('=== Iniciando escaneo de Upwork ===');
-  const allOpps = [];
-  const seen = new Set();
+  log.info('=== Iniciando escaneo de RemoteOK (reemplazo Upwork) ===');
 
-  for (const keyword of UPWORK_CONFIG.keywords) {
-    const results = await scanUpworkKeyword(keyword);
+  try {
+    const response = await fetch('https://remoteok.com/api', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+    });
 
-    // Deduplicar por URL
-    for (const opp of results) {
+    if (!response.ok) {
+      log.error(`Error HTTP ${response.status} en RemoteOK API`);
+      return { total: 0, new: 0 };
+    }
+
+    const data = await response.json();
+    // Primer elemento es aviso legal, el resto son jobs
+    const jobs = data.slice(1);
+    log.info(`  RemoteOK API: ${jobs.length} jobs totales`);
+
+    // Filtrar jobs relevantes para nuestro perfil
+    const matched = jobs.filter(job => matchesKeywords(job));
+    log.info(`  Coinciden con keywords: ${matched.length} de ${jobs.length}`);
+
+    // Parsear y deduplicar
+    const seen = new Set();
+    const parsed = [];
+    for (const job of matched) {
+      const opp = parseRemoteOkJob(job);
       if (!seen.has(opp.url)) {
         seen.add(opp.url);
-        // Filtrar por budget mínimo si configurado
-        if (UPWORK_CONFIG.min_budget && opp.budget_max && opp.budget_max < UPWORK_CONFIG.min_budget) continue;
-        // Filtrar por máximo de propuestas
-        if (UPWORK_CONFIG.max_proposals && opp.proposals_count && opp.proposals_count > UPWORK_CONFIG.max_proposals) continue;
-        allOpps.push(opp);
+        parsed.push(opp);
       }
     }
 
-    await delay(5000); // 5s entre keywords
+    // Guardar en BD
+    const saved = await saveUpworkResults(parsed);
+    log.info(`=== RemoteOK completado: ${parsed.length} oportunidades, ${saved.new} nuevas ===`);
+
+    insertScan('remoteok', 'freelance', parsed.length, saved.new, 'freelance', 'remoteok');
+    return { total: parsed.length, new: saved.new };
+  } catch (err) {
+    log.error(`Error en RemoteOK API: ${err.message}`);
+    return { total: 0, new: 0 };
   }
+}
 
-  // Guardar en BD
-  const saved = await saveUpworkResults(allOpps);
-  log.info(`=== Upwork completado: ${allOpps.length} oportunidades, ${saved.new} nuevas ===`);
+// Alias para compatibilidad con imports existentes
+export { scanAllUpwork as scanAllRemoteOK };
 
-  insertScan('upwork', 'freelance', allOpps.length, saved.new, 'freelance', 'upwork');
-  return { total: allOpps.length, new: saved.new };
+/**
+ * Escanea una keyword específica (ya no usado, pero mantener export por compatibilidad)
+ */
+export async function scanUpworkKeyword(keyword) {
+  log.info(`  Nota: scanUpworkKeyword ya no se usa, RemoteOK devuelve todos los jobs a la vez`);
+  return [];
 }
 
 /**
@@ -310,7 +236,7 @@ export async function saveUpworkResults(opportunities) {
 
 // Ejecutar directamente para pruebas
 if (process.argv[1] && process.argv[1].includes('upwork.js')) {
-  console.log('\nIniciando escaneo de Upwork...\n');
+  console.log('\nIniciando escaneo de RemoteOK...\n');
   const result = await scanAllUpwork();
   console.log(`\nResultado: ${result.total} oportunidades, ${result.new} nuevas`);
   process.exit(0);

@@ -9,11 +9,11 @@ const typeLabels = {
   fiverr: 'Fiverr',
   linkedin: 'LinkedIn',
   score: 'Scoring',
-  upwork: 'Upwork',
+  upwork: 'RemoteOK',
   hackernews: 'HackerNews',
   'reddit-freelance': 'Reddit FL',
   'freelance-score': 'Score FL',
-  'linkedin-jobs': 'LinkedIn Jobs',
+  'linkedin-jobs': 'WWRemotely',
 };
 
 const typeColors = {
@@ -307,12 +307,12 @@ export default function ScanPanel({ config, initialHistory }) {
       {/* Scrapers Freelance */}
       <h2 className="text-lg font-semibold text-white mt-8">Freelance</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Upwork */}
+        {/* RemoteOK (antes Upwork) */}
         <ScanCard
           type="upwork"
           icon={Briefcase}
-          title="Upwork"
-          description="Escanea proyectos vía RSS feeds"
+          title="RemoteOK"
+          description="Jobs remotos vía API pública"
           onLaunch={() => launchScan('upwork')}
           loading={scanState.upwork.loading}
           result={scanState.upwork.result}
@@ -343,12 +343,12 @@ export default function ScanPanel({ config, initialHistory }) {
           error={scanState['reddit-freelance'].error}
         />
 
-        {/* LinkedIn Jobs */}
+        {/* We Work Remotely (antes LinkedIn Jobs) */}
         <ScanCard
           type="linkedin-jobs"
           icon={Linkedin}
-          title="LinkedIn Jobs"
-          description="Ofertas freelance via Google Search"
+          title="WeWorkRemotely"
+          description="Jobs remotos de programación vía RSS"
           onLaunch={() => launchScan('linkedin-jobs')}
           loading={scanState['linkedin-jobs'].loading}
           result={scanState['linkedin-jobs'].result}
