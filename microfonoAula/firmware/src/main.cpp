@@ -11,7 +11,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-#include <driver/i2s.h>
+// M5Unified handles I2S internally
 #include <math.h>
 
 #include "config.h"
@@ -35,46 +35,20 @@ unsigned long lastPeakReset = 0;
 char mqttTopic[64];
 
 // ============================================
-// Configuracion I2S para microfono PDM
+// Configuracion microfono via M5Unified
 // ============================================
-void setupI2S() {
-    i2s_config_t i2s_config = {
-        .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_PDM),
-        .sample_rate = SAMPLE_RATE,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = I2S_COMM_FORMAT_STAND_I2S,
-        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 4,
-        .dma_buf_len = SAMPLES_PER_READ,
-        .use_apll = false,
-        .tx_desc_auto_clear = false,
-        .fixed_mclk = 0,
-    };
+void setupMic() {
+    auto mic_cfg = M5.Mic.config();
+    mic_cfg.sample_rate = SAMPLE_RATE;
+    mic_cfg.dma_buf_count = 4;
+    mic_cfg.dma_buf_len = SAMPLES_PER_READ;
+    M5.Mic.config(mic_cfg);
 
-    i2s_pin_config_t pin_config = {
-        .mck_io_num = I2S_MCLK_PIN,
-        .bck_io_num = I2S_SCLK_PIN,
-        .ws_io_num = I2S_LRCK_PIN,
-        .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num = I2S_DSDIN_PIN,
-    };
-
-    esp_err_t err = i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
-    if (err != ESP_OK) {
-        Serial.printf("[ERROR] Error instalando driver I2S: %d\n", err);
-        return;
+    if (M5.Mic.begin()) {
+        Serial.println("[MIC] Microfono configurado correctamente via M5Unified");
+    } else {
+        Serial.println("[ERROR] No se pudo iniciar el microfono");
     }
-
-    err = i2s_set_pin(I2S_NUM_0, &pin_config);
-    if (err != ESP_OK) {
-        Serial.printf("[ERROR] Error configurando pines I2S: %d\n", err);
-        return;
-    }
-
-    // Esperar a que el I2S se estabilice
-    delay(100);
-    Serial.println("[I2S] Microfono PDM configurado correctamente");
 }
 
 // ============================================
@@ -176,22 +150,13 @@ void updateLED(float db) {
 // Lectura de audio y calculo de dB
 // ============================================
 void readAudioLevel() {
-    size_t bytesRead = 0;
+    if (!M5.Mic.isEnabled()) return;
 
-    esp_err_t err = i2s_read(
-        I2S_NUM_0,
-        sampleBuffer,
-        sizeof(sampleBuffer),
-        &bytesRead,
-        portMAX_DELAY
-    );
-
-    if (err != ESP_OK || bytesRead == 0) {
+    if (M5.Mic.record(sampleBuffer, SAMPLES_PER_READ, SAMPLE_RATE) == false) {
         return;
     }
 
-    size_t samplesRead = bytesRead / sizeof(int16_t);
-    float rms = calculateRMS(sampleBuffer, samplesRead);
+    float rms = calculateRMS(sampleBuffer, SAMPLES_PER_READ);
     currentDbLevel = rmsToDB(rms);
 
     // Actualizar pico (se resetea cada 10 segundos)
@@ -242,8 +207,8 @@ void setup() {
     Serial.printf("  Aula: %s\n", ROOM_ID);
     Serial.println("========================================");
 
-    // Configurar I2S para microfono PDM
-    setupI2S();
+    // Configurar microfono via M5Unified
+    setupMic();
 
     // Conectar WiFi
     setupWiFi();
