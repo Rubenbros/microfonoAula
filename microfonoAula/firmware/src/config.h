@@ -10,7 +10,7 @@
 // ============================================
 // Configuracion MQTT
 // ============================================
-#define MQTT_BROKER "192.168.1.100"
+#define MQTT_BROKER "192.168.0.22"
 #define MQTT_PORT 1883
 #define MQTT_USER ""       // Dejar vacio si no hay autenticacion
 #define MQTT_PASSWORD ""   // Dejar vacio si no hay autenticacion
