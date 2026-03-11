@@ -17,8 +17,20 @@ const fs = require("fs");
 // ============================================
 // Configuracion
 // ============================================
+const USE_INTERNAL_BROKER = process.env.USE_INTERNAL_BROKER !== "false";
 const MQTT_BROKER = process.env.MQTT_BROKER || "mqtt://localhost";
 const MQTT_PORT = parseInt(process.env.MQTT_PORT || "1883");
+
+// ============================================
+// Broker MQTT integrado (arranca si no hay externo)
+// ============================================
+if (USE_INTERNAL_BROKER) {
+    try {
+        require("./broker");
+    } catch (err) {
+        console.log("[BROKER] Broker integrado no disponible, usando externo:", MQTT_BROKER);
+    }
+}
 const HTTP_PORT = parseInt(process.env.HTTP_PORT || "3001");
 const WS_PORT = parseInt(process.env.WS_PORT || "3002");
 const DB_PATH = process.env.DB_PATH || "./data/noise.db";
