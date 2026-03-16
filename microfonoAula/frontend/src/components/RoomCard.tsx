@@ -1,22 +1,15 @@
 "use client";
 
-import { NoiseReading } from "@/lib/useNoiseData";
+import { RoomSummary } from "@/lib/useNoiseData";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface RoomCardProps {
-    reading: NoiseReading;
+    room: RoomSummary;
     sparkline: number[];
     onClick: () => void;
 }
 
-/** Determina el color segun el nivel de dB */
-function getNoiseLevel(db: number): {
-    color: string;
-    bgColor: string;
-    borderColor: string;
-    label: string;
-    sparkColor: string;
-} {
+function getNoiseLevel(db: number) {
     if (db < 50) {
         return {
             color: "text-green-400",
@@ -44,18 +37,13 @@ function getNoiseLevel(db: number): {
     }
 }
 
-/** Formatea el nombre del aula para mostrarlo */
 function formatRoomName(room: string): string {
-    return room
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (l) => l.toUpperCase());
+    return room.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-/** Tiempo relativo desde el ultimo dato */
 function timeAgo(timestamp: number): string {
     const now = Math.floor(Date.now() / 1000);
     const diff = now - timestamp;
-
     if (diff < 5) return "ahora";
     if (diff < 60) return `hace ${diff}s`;
     if (diff < 3600) return `hace ${Math.floor(diff / 60)}min`;
@@ -63,9 +51,12 @@ function timeAgo(timestamp: number): string {
     return `hace ${Math.floor(diff / 86400)}d`;
 }
 
-export default function RoomCard({ reading, sparkline, onClick }: RoomCardProps) {
-    const level = getNoiseLevel(reading.db);
+export default function RoomCard({ room, sparkline, onClick }: RoomCardProps) {
+    const level = getNoiseLevel(room.db);
     const sparkData = sparkline.map((value, index) => ({ value, index }));
+    const latestTimestamp = room.mics.length > 0
+        ? Math.max(...room.mics.map(m => m.timestamp))
+        : 0;
 
     return (
         <button
@@ -77,31 +68,31 @@ export default function RoomCard({ reading, sparkline, onClick }: RoomCardProps)
                 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500
             `}
         >
-            {/* Cabecera: nombre del aula y estado */}
             <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-white">
-                    {formatRoomName(reading.room)}
+                    {formatRoomName(room.room)}
                 </h3>
                 <span className={`text-xs px-2 py-1 rounded-full ${level.bgColor} ${level.color} font-medium`}>
                     {level.label}
                 </span>
             </div>
 
-            {/* Nivel actual de dB */}
             <div className="flex items-end gap-2 mb-1">
                 <span className={`text-4xl font-bold tabular-nums ${level.color} db-pulse`}>
-                    {reading.db.toFixed(1)}
+                    {room.db.toFixed(1)}
                 </span>
                 <span className="text-gray-400 text-sm mb-1">dB</span>
             </div>
 
-            {/* Pico */}
             <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
-                <span>Pico: {reading.peak.toFixed(1)} dB</span>
-                <span>{timeAgo(reading.timestamp)}</span>
+                <span>Pico: {room.peak.toFixed(1)} dB</span>
+                <span>{latestTimestamp > 0 ? timeAgo(latestTimestamp) : ""}</span>
             </div>
 
-            {/* Sparkline */}
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                <span>{room.onlineCount}/{room.micCount} micros activos</span>
+            </div>
+
             {sparkData.length > 2 && (
                 <div className="h-10 w-full">
                     <ResponsiveContainer width="100%" height="100%">

@@ -2,10 +2,11 @@
 #define CONFIG_H
 
 // ============================================
-// Configuracion WiFi
+// Configuracion WiFi (WPA2-Enterprise EAP-PEAP)
 // ============================================
-#define WIFI_SSID "TU_SSID_AQUI"
-#define WIFI_PASSWORD "TU_PASSWORD_AQUI"
+#define WIFI_SSID "ENLACES-A204"
+#define WIFI_USER "dam250v"
+#define WIFI_PASSWORD "q3TzPmt5"
 
 // ============================================
 // Configuracion MQTT
@@ -16,14 +17,15 @@
 #define MQTT_PASSWORD ""   // Dejar vacio si no hay autenticacion
 
 // ============================================
-// Identificacion del aula
+// Identificacion del aula y microfono
 // ============================================
 #define ROOM_ID "aula_01"
+#define MIC_ID  "mic_01"
 
 // ============================================
 // Parametros de medicion
 // ============================================
-#define SEND_INTERVAL_MS 2000       // Intervalo de envio MQTT (ms)
+#define SEND_INTERVAL_MS 5000       // Intervalo de envio MQTT (ms) - media de 5s
 #define SAMPLE_RATE 16000           // Frecuencia de muestreo (Hz)
 #define SAMPLES_PER_READ 1024      // Muestras por lectura I2S
 #define DB_REFERENCE 94.0          // Referencia dB SPL para calibracion

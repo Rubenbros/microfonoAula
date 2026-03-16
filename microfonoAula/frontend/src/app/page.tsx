@@ -2,24 +2,55 @@
 
 import { useNoiseData } from "@/lib/useNoiseData";
 import RoomCard from "@/components/RoomCard";
-import NoiseChart from "@/components/NoiseChart";
+import RoomDetailView from "@/components/RoomDetailView";
+import MicDetailView from "@/components/MicDetailView";
 
 export default function HomePage() {
     const {
         rooms,
         connected,
-        history,
+        view,
         selectedRoom,
+        selectedMic,
+        history,
         loading,
-        loadHistory,
-        closeHistory,
+        selectRoom,
+        selectMic,
+        goBack,
         getSparkline,
+        getRoomData,
     } = useNoiseData();
 
-    // Ordenar aulas por nombre
-    const sortedRooms = [...rooms].sort((a, b) => a.room.localeCompare(b.room));
+    // Vista de detalle de microfono
+    if (view === "mic" && selectedRoom && selectedMic) {
+        const roomData = getRoomData(selectedRoom);
+        const micData = roomData?.mics.find(m => m.mic === selectedMic);
+        return (
+            <MicDetailView
+                roomName={selectedRoom}
+                micId={selectedMic}
+                micData={micData || null}
+                history={history}
+                loading={loading}
+                onBack={goBack}
+            />
+        );
+    }
 
-    // Calcular estadisticas generales
+    // Vista de detalle de aula (mapa con mics)
+    if (view === "room" && selectedRoom) {
+        const roomData = getRoomData(selectedRoom);
+        return (
+            <RoomDetailView
+                roomData={roomData}
+                onSelectMic={(micId) => selectMic(selectedRoom, micId)}
+                onBack={goBack}
+            />
+        );
+    }
+
+    // Dashboard principal
+    const sortedRooms = [...rooms].sort((a, b) => a.room.localeCompare(b.room));
     const totalRooms = rooms.length;
     const avgDb = totalRooms > 0
         ? rooms.reduce((sum, r) => sum + r.db, 0) / totalRooms
@@ -42,7 +73,6 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                {/* Resumen rapido */}
                 <div className="flex items-center gap-6 text-sm">
                     <div className="text-gray-400">
                         Promedio: <span className="text-white font-medium">{avgDb.toFixed(1)} dB</span>
@@ -66,7 +96,7 @@ export default function HomePage() {
                         Esperando conexion de los microfonos ATOM Echo S3R...
                     </p>
                     <p className="text-xs mt-4 text-gray-600">
-                        Los dispositivos envian datos via MQTT al topic <code className="bg-gray-800 px-1 rounded">aulas/+/noise</code>
+                        Los dispositivos envian datos via MQTT al topic <code className="bg-gray-800 px-1 rounded">aulas/+/+/noise</code>
                     </p>
                 </div>
             ) : (
@@ -74,22 +104,12 @@ export default function HomePage() {
                     {sortedRooms.map((room) => (
                         <RoomCard
                             key={room.room}
-                            reading={room}
+                            room={room}
                             sparkline={getSparkline(room.room)}
-                            onClick={() => loadHistory(room.room)}
+                            onClick={() => selectRoom(room.room)}
                         />
                     ))}
                 </div>
-            )}
-
-            {/* Modal de historico */}
-            {selectedRoom && (
-                <NoiseChart
-                    data={history}
-                    roomName={selectedRoom}
-                    onClose={closeHistory}
-                    loading={loading}
-                />
             )}
         </div>
     );

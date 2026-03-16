@@ -3,6 +3,7 @@
  *
  * Recibe datos MQTT de los microfonos, almacena en SQLite,
  * expone API REST y WebSocket para el frontend.
+ * Soporta multiples microfonos por aula.
  */
 
 require("dotenv").config();
@@ -17,7 +18,7 @@ const fs = require("fs");
 // ============================================
 // Configuracion
 // ============================================
-const USE_INTERNAL_BROKER = process.env.USE_INTERNAL_BROKER !== "false";
+const USE_INTERNAL_BROKER = process.env.USE_INTERNAL_BROKER === "true";
 const MQTT_BROKER = process.env.MQTT_BROKER || "mqtt://localhost";
 const MQTT_PORT = parseInt(process.env.MQTT_PORT || "1883");
 
@@ -35,6 +36,9 @@ const HTTP_PORT = parseInt(process.env.HTTP_PORT || "3001");
 const WS_PORT = parseInt(process.env.WS_PORT || "3002");
 const DB_PATH = process.env.DB_PATH || "./data/noise.db";
 
+// Timeout para considerar un mic offline (15s)
+const MIC_OFFLINE_TIMEOUT = 15000;
+
 // ============================================
 // Base de datos SQLite
 // ============================================
@@ -45,15 +49,15 @@ if (!fs.existsSync(dbDir)) {
 
 const db = new Database(DB_PATH);
 
-// Optimizaciones SQLite
 db.pragma("journal_mode = WAL");
 db.pragma("synchronous = NORMAL");
 
-// Crear tabla si no existe
+// Crear tabla con soporte para mic
 db.exec(`
     CREATE TABLE IF NOT EXISTS noise_readings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         room TEXT NOT NULL,
+        mic TEXT NOT NULL DEFAULT 'mic_01',
         db_level REAL NOT NULL,
         peak_level REAL NOT NULL,
         timestamp INTEGER NOT NULL,
@@ -61,34 +65,36 @@ db.exec(`
     )
 `);
 
-// Indice para consultas por aula y tiempo
+// Migrar tabla existente si no tiene columna mic
+try {
+    db.exec(`ALTER TABLE noise_readings ADD COLUMN mic TEXT NOT NULL DEFAULT 'mic_01'`);
+    console.log("[DB] Columna 'mic' añadida a tabla existente");
+} catch (e) {
+    // Ya existe, ignorar
+}
+
 db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_room_timestamp
-    ON noise_readings (room, timestamp DESC)
+    CREATE INDEX IF NOT EXISTS idx_room_mic_timestamp
+    ON noise_readings (room, mic, timestamp DESC)
 `);
 
 console.log("[DB] Base de datos SQLite inicializada");
 
-// Prepared statements para rendimiento
+// Prepared statements
 const insertReading = db.prepare(`
-    INSERT INTO noise_readings (room, db_level, peak_level, timestamp)
-    VALUES (?, ?, ?, ?)
-`);
-
-const getLatestByRoom = db.prepare(`
-    SELECT room, db_level, peak_level, timestamp, created_at
-    FROM noise_readings
-    WHERE room = ?
-    ORDER BY timestamp DESC
-    LIMIT 1
-`);
-
-const getAllRooms = db.prepare(`
-    SELECT DISTINCT room FROM noise_readings ORDER BY room
+    INSERT INTO noise_readings (room, mic, db_level, peak_level, timestamp)
+    VALUES (?, ?, ?, ?, ?)
 `);
 
 const getHistory = db.prepare(`
-    SELECT id, room, db_level, peak_level, timestamp, created_at
+    SELECT id, room, mic, db_level, peak_level, timestamp, created_at
+    FROM noise_readings
+    WHERE room = ? AND mic = ? AND timestamp >= ? AND timestamp <= ?
+    ORDER BY timestamp ASC
+`);
+
+const getRoomHistory = db.prepare(`
+    SELECT id, room, mic, db_level, peak_level, timestamp, created_at
     FROM noise_readings
     WHERE room = ? AND timestamp >= ? AND timestamp <= ?
     ORDER BY timestamp ASC
@@ -106,9 +112,45 @@ const getStats = db.prepare(`
 `);
 
 // ============================================
-// Estado en memoria (ultima lectura por aula)
+// Estado en memoria: room -> Map<mic, reading>
 // ============================================
 const latestReadings = new Map();
+
+function getRoomSummary(room) {
+    const mics = latestReadings.get(room);
+    if (!mics || mics.size === 0) return null;
+
+    const now = Date.now();
+    const micArray = [...mics.values()].map(m => ({
+        ...m,
+        online: (now - m._lastSeen) < MIC_OFFLINE_TIMEOUT,
+    }));
+
+    const onlineMics = micArray.filter(m => m.online);
+    const avgDb = onlineMics.length > 0
+        ? onlineMics.reduce((s, m) => s + m.db, 0) / onlineMics.length
+        : 0;
+    const maxPeak = onlineMics.length > 0
+        ? Math.max(...onlineMics.map(m => m.peak))
+        : 0;
+
+    return {
+        room,
+        db: Math.round(avgDb * 10) / 10,
+        peak: Math.round(maxPeak * 10) / 10,
+        micCount: micArray.length,
+        onlineCount: onlineMics.length,
+        mics: micArray.map(({ _lastSeen, ...rest }) => rest),
+    };
+}
+
+function getAllRoomSummaries() {
+    const summaries = {};
+    for (const room of latestReadings.keys()) {
+        summaries[room] = getRoomSummary(room);
+    }
+    return summaries;
+}
 
 // ============================================
 // WebSocket Server
@@ -118,11 +160,9 @@ const wss = new WebSocketServer({ port: WS_PORT });
 wss.on("connection", (ws) => {
     console.log("[WS] Cliente conectado");
 
-    // Enviar estado actual al conectarse
-    const currentState = Object.fromEntries(latestReadings);
     ws.send(JSON.stringify({
         type: "init",
-        data: currentState,
+        data: getAllRoomSummaries(),
     }));
 
     ws.on("close", () => {
@@ -130,14 +170,30 @@ wss.on("connection", (ws) => {
     });
 });
 
-function broadcastToClients(data) {
+function broadcastRoomUpdate(room) {
+    const summary = getRoomSummary(room);
+    if (!summary) return;
+
     const message = JSON.stringify({
-        type: "update",
-        data,
+        type: "room_update",
+        data: summary,
     });
 
     wss.clients.forEach((client) => {
-        if (client.readyState === 1) { // WebSocket.OPEN
+        if (client.readyState === 1) {
+            client.send(message);
+        }
+    });
+}
+
+function broadcastMicUpdate(reading) {
+    const message = JSON.stringify({
+        type: "mic_update",
+        data: reading,
+    });
+
+    wss.clients.forEach((client) => {
+        if (client.readyState === 1) {
             client.send(message);
         }
     });
@@ -157,45 +213,72 @@ const mqttClient = mqtt.connect(MQTT_BROKER, {
 mqttClient.on("connect", () => {
     console.log("[MQTT] Conectado al broker");
 
-    // Suscribirse a todos los topics de ruido de aulas
+    // Suscribirse a ambos formatos de topic (legacy y nuevo)
+    mqttClient.subscribe("aulas/+/+/noise", (err) => {
+        if (err) console.error("[MQTT] Error suscripcion nuevo formato:", err);
+        else console.log("[MQTT] Suscrito a aulas/+/+/noise");
+    });
+
     mqttClient.subscribe("aulas/+/noise", (err) => {
-        if (err) {
-            console.error("[MQTT] Error al suscribirse:", err);
-        } else {
-            console.log("[MQTT] Suscrito a aulas/+/noise");
-        }
+        if (err) console.error("[MQTT] Error suscripcion legacy:", err);
+        else console.log("[MQTT] Suscrito a aulas/+/noise (legacy)");
     });
 });
 
 mqttClient.on("message", (topic, message) => {
     try {
         const data = JSON.parse(message.toString());
-        const { room, db: dbLevel, peak, timestamp } = data;
+        const parts = topic.split("/");
+
+        // Detectar formato: aulas/{room}/{mic}/noise o aulas/{room}/noise
+        let room, mic;
+        if (parts.length === 4 && parts[3] === "noise") {
+            room = parts[1];
+            mic = parts[2];
+        } else if (parts.length === 3 && parts[2] === "noise") {
+            room = parts[1];
+            mic = data.mic || "mic_01";
+        } else {
+            return;
+        }
+
+        const dbLevel = data.db;
+        const peak = data.peak || dbLevel;
 
         if (!room || dbLevel === undefined) {
             console.warn("[MQTT] Mensaje invalido:", data);
             return;
         }
 
-        // Usar timestamp del servidor si el del dispositivo es uptime
         const serverTimestamp = Math.floor(Date.now() / 1000);
 
         // Guardar en SQLite
-        insertReading.run(room, dbLevel, peak || dbLevel, serverTimestamp);
+        insertReading.run(room, mic, dbLevel, peak, serverTimestamp);
 
         // Actualizar estado en memoria
+        if (!latestReadings.has(room)) {
+            latestReadings.set(room, new Map());
+        }
+
         const reading = {
             room,
+            mic,
             db: dbLevel,
-            peak: peak || dbLevel,
+            peak,
             timestamp: serverTimestamp,
+            online: true,
         };
-        latestReadings.set(room, reading);
 
-        // Enviar a clientes WebSocket
-        broadcastToClients(reading);
+        latestReadings.get(room).set(mic, {
+            ...reading,
+            _lastSeen: Date.now(),
+        });
 
-        console.log(`[MQTT] ${room}: ${dbLevel} dB (pico: ${peak || dbLevel} dB)`);
+        // Broadcast a clientes WebSocket
+        broadcastMicUpdate(reading);
+        broadcastRoomUpdate(room);
+
+        console.log(`[MQTT] ${room}/${mic}: ${dbLevel} dB (pico: ${peak} dB)`);
     } catch (err) {
         console.error("[MQTT] Error procesando mensaje:", err.message);
     }
@@ -214,7 +297,6 @@ mqttClient.on("reconnect", () => {
 // ============================================
 const app = express();
 
-// CORS para desarrollo
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Content-Type");
@@ -223,60 +305,79 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// GET /api/rooms - Lista de aulas con ultima lectura
+// GET /api/rooms - Lista de aulas con resumen
 app.get("/api/rooms", (req, res) => {
     try {
-        const rooms = getAllRooms.all();
-        const result = rooms.map((r) => {
-            // Priorizar dato en memoria, si no buscar en DB
-            const cached = latestReadings.get(r.room);
-            if (cached) {
-                return cached;
-            }
-            const latest = getLatestByRoom.get(r.room);
-            return latest
-                ? {
-                    room: latest.room,
-                    db: latest.db_level,
-                    peak: latest.peak_level,
-                    timestamp: latest.timestamp,
-                }
-                : { room: r.room, db: 0, peak: 0, timestamp: 0 };
-        });
-
-        res.json({ rooms: result });
+        const summaries = getAllRoomSummaries();
+        const rooms = Object.values(summaries).filter(Boolean);
+        res.json({ rooms });
     } catch (err) {
         console.error("[API] Error en /api/rooms:", err.message);
         res.status(500).json({ error: "Error interno del servidor" });
     }
 });
 
-// GET /api/rooms/:id/history - Historico de un aula
+// GET /api/rooms/:id - Detalle de un aula con todos sus mics
+app.get("/api/rooms/:id", (req, res) => {
+    try {
+        const roomId = req.params.id;
+        const summary = getRoomSummary(roomId);
+        if (!summary) {
+            return res.status(404).json({ error: "Aula no encontrada" });
+        }
+        res.json(summary);
+    } catch (err) {
+        console.error("[API] Error en /api/rooms/:id:", err.message);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
+// GET /api/rooms/:id/history - Historico de un aula (todos los mics)
 app.get("/api/rooms/:id/history", (req, res) => {
     try {
         const roomId = req.params.id;
         const now = Math.floor(Date.now() / 1000);
-        const from = parseInt(req.query.from) || now - 3600;   // Ultima hora por defecto
+        const from = parseInt(req.query.from) || now - 3600;
         const to = parseInt(req.query.to) || now;
 
-        const readings = getHistory.all(roomId, from, to);
+        const readings = getRoomHistory.all(roomId, from, to);
         const result = readings.map((r) => ({
             id: r.id,
             room: r.room,
+            mic: r.mic,
             db: r.db_level,
             peak: r.peak_level,
             timestamp: r.timestamp,
         }));
 
-        res.json({
-            room: roomId,
-            from,
-            to,
-            count: result.length,
-            readings: result,
-        });
+        res.json({ room: roomId, from, to, count: result.length, readings: result });
     } catch (err) {
         console.error("[API] Error en /api/rooms/:id/history:", err.message);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
+// GET /api/rooms/:id/mics/:micId/history - Historico de un micro especifico
+app.get("/api/rooms/:id/mics/:micId/history", (req, res) => {
+    try {
+        const { id: roomId, micId } = req.params;
+        const now = Math.floor(Date.now() / 1000);
+        const from = parseInt(req.query.from) || now - 3600;
+        const to = parseInt(req.query.to) || now;
+
+        const readings = getHistory.all(roomId, micId, from, to);
+        const result = readings.map((r) => ({
+            id: r.id,
+            room: r.room,
+            mic: r.mic,
+            db: r.db_level,
+            peak: r.peak_level,
+            timestamp: r.timestamp,
+        }));
+
+        res.json({ room: roomId, mic: micId, from, to, count: result.length, readings: result });
+    } catch (err) {
+        console.error("[API] Error en mic history:", err.message);
         res.status(500).json({ error: "Error interno del servidor" });
     }
 });
@@ -285,16 +386,16 @@ app.get("/api/rooms/:id/history", (req, res) => {
 app.get("/api/stats", (req, res) => {
     try {
         const now = Math.floor(Date.now() / 1000);
-        const since = parseInt(req.query.since) || now - 86400; // Ultimas 24h
+        const since = parseInt(req.query.since) || now - 86400;
 
         const stats = getStats.get(since);
         const activeRooms = latestReadings.size;
 
-        // Calcular aulas por encima de umbral
         let roomsAboveThreshold = 0;
-        latestReadings.forEach((reading) => {
-            if (reading.db > 70) roomsAboveThreshold++;
-        });
+        for (const room of latestReadings.keys()) {
+            const summary = getRoomSummary(room);
+            if (summary && summary.db > 70) roomsAboveThreshold++;
+        }
 
         res.json({
             total_rooms: stats.total_rooms,

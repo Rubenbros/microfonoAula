@@ -1,18 +1,18 @@
 """
 Script para flashear multiples M5Stack ATOM Echo S3R
-con diferentes ROOM_ID de forma rapida.
+con diferentes ROOM_ID y MIC_ID de forma rapida.
 
 Uso:
-  python flash.py                  # Flashea con config.h tal cual
-  python flash.py aula_01          # Cambia ROOM_ID y flashea
-  python flash.py aula_01 COM5     # Especifica puerto COM
-  python flash.py --list           # Lista puertos COM disponibles
+  python flash.py mic_01                    # Flashea mic_01 en aula_01
+  python flash.py mic_02                    # Flashea mic_02 en aula_01
+  python flash.py mic_03 --room aula_02     # mic_03 en aula_02
+  python flash.py mic_01 COM5               # Especifica puerto COM
+  python flash.py --list                    # Lista puertos COM disponibles
 
-Flujo para varios micros:
-  1. Enchufa micro 1 → python flash.py aula_101
-  2. Desenchufa, enchufa micro 2 → python flash.py aula_102
-  3. Desenchufa, enchufa micro 3 → python flash.py lab_informatica
-  ... repite para cada micro
+Flujo para 6 micros de un aula:
+  1. Enchufa micro 1 → python flash.py mic_01
+  2. Desenchufa, enchufa micro 2 → python flash.py mic_02
+  3. Repite hasta mic_06
 """
 
 import sys
@@ -53,20 +53,20 @@ def list_ports():
         return []
 
 
-def set_room_id(room_id):
-    """Cambia el ROOM_ID en config.h."""
+def set_config_value(key, value):
+    """Cambia un #define en config.h."""
     with open(CONFIG_FILE, "r") as f:
         content = f.read()
 
-    old_room = re.search(r'#define ROOM_ID\s+"([^"]*)"', content)
-    if old_room:
-        print(f"  ROOM_ID: {old_room.group(1)} → {room_id}")
+    old = re.search(rf'#define {key}\s+"([^"]*)"', content)
+    if old:
+        print(f"  {key}: {old.group(1)} -> {value}")
     else:
-        print(f"  ROOM_ID: → {room_id}")
+        print(f"  {key}: -> {value}")
 
     content = re.sub(
-        r'#define ROOM_ID\s+"[^"]*"',
-        f'#define ROOM_ID "{room_id}"',
+        rf'#define {key}\s+"[^"]*"',
+        f'#define {key} "{value}"',
         content
     )
 
@@ -74,14 +74,19 @@ def set_room_id(room_id):
         f.write(content)
 
 
-def set_wifi(ssid, password):
-    """Cambia WiFi SSID y password en config.h."""
+def set_wifi(ssid, user, password):
+    """Cambia WiFi SSID, user y password en config.h."""
     with open(CONFIG_FILE, "r") as f:
         content = f.read()
 
     content = re.sub(
         r'#define WIFI_SSID\s+"[^"]*"',
         f'#define WIFI_SSID "{ssid}"',
+        content
+    )
+    content = re.sub(
+        r'#define WIFI_USER\s+"[^"]*"',
+        f'#define WIFI_USER "{user}"',
         content
     )
     content = re.sub(
@@ -93,7 +98,7 @@ def set_wifi(ssid, password):
     with open(CONFIG_FILE, "w") as f:
         f.write(content)
 
-    print(f"  WiFi: {ssid}")
+    print(f"  WiFi: {ssid} (user: {user})")
 
 
 def flash(port=None):
@@ -121,15 +126,19 @@ def show_config():
         content = f.read()
 
     ssid = re.search(r'#define WIFI_SSID\s+"([^"]*)"', content)
+    user = re.search(r'#define WIFI_USER\s+"([^"]*)"', content)
     pwd = re.search(r'#define WIFI_PASSWORD\s+"([^"]*)"', content)
     broker = re.search(r'#define MQTT_BROKER\s+"([^"]*)"', content)
     room = re.search(r'#define ROOM_ID\s+"([^"]*)"', content)
+    mic = re.search(r'#define MIC_ID\s+"([^"]*)"', content)
 
     print("  Configuracion actual:")
     print(f"    WiFi SSID:    {ssid.group(1) if ssid else '?'}")
+    print(f"    WiFi User:    {user.group(1) if user else '?'}")
     print(f"    WiFi Pass:    {'***' if pwd and pwd.group(1) else 'NO CONFIGURADO'}")
     print(f"    MQTT Broker:  {broker.group(1) if broker else '?'}")
     print(f"    ROOM_ID:      {room.group(1) if room else '?'}")
+    print(f"    MIC_ID:       {mic.group(1) if mic else '?'}")
 
 
 def main():
@@ -147,16 +156,27 @@ def main():
         list_ports()
         return
 
-    # --wifi SSID PASSWORD: configurar wifi
+    # Credenciales WiFi por micro (ENLACES-A204, WPA2-Enterprise)
+    MIC_CREDENTIALS = {
+        "mic_01": ("dam251v", "Shb*XEdv"),
+        "mic_02": ("dam252v", "blG1K1vT"),
+        "mic_03": ("dam253v", "1B6%CHbl"),
+        "mic_04": ("dam254v", "8tE%Phs@"),
+        "mic_05": ("dam255v", "%@CXFvVm"),
+        "mic_06": ("dam256v", "JTg71@*b"),
+    }
+
+    # --wifi SSID USER PASSWORD: configurar wifi manualmente
     if "--wifi" in args:
         idx = args.index("--wifi")
-        if idx + 2 < len(args):
+        if idx + 3 <= len(args):
             ssid = args[idx + 1]
-            password = args[idx + 2]
-            set_wifi(ssid, password)
-            args = [a for i, a in enumerate(args) if i not in (idx, idx+1, idx+2)]
+            user = args[idx + 2]
+            password = args[idx + 3]
+            set_wifi(ssid, user, password)
+            args = [a for i, a in enumerate(args) if i not in (idx, idx+1, idx+2, idx+3)]
         else:
-            print("  Uso: python flash.py --wifi SSID PASSWORD [room_id] [COM_PORT]")
+            print("  Uso: python flash.py --wifi SSID USER PASSWORD [mic_id]")
             return
 
     # --config: solo mostrar config
@@ -167,19 +187,35 @@ def main():
     show_config()
     print()
 
-    # Parsear room_id y puerto
+    # Parsear mic_id, --room y puerto
+    mic_id = None
     room_id = None
     port = None
+
+    if "--room" in args:
+        idx = args.index("--room")
+        if idx + 1 < len(args):
+            room_id = args[idx + 1]
+            args = [a for i, a in enumerate(args) if i not in (idx, idx+1)]
 
     for arg in args:
         if arg.startswith("COM") or arg.startswith("/dev/"):
             port = arg
         elif not arg.startswith("--"):
-            room_id = arg
+            mic_id = arg
+
+    # Cambiar MIC_ID si se especifica
+    if mic_id:
+        set_config_value("MIC_ID", mic_id)
+
+        # Auto-asignar credenciales WiFi si el mic tiene credenciales definidas
+        if mic_id in MIC_CREDENTIALS and "--wifi" not in sys.argv:
+            user, pwd = MIC_CREDENTIALS[mic_id]
+            set_wifi("ENLACES-A204", user, pwd)
 
     # Cambiar ROOM_ID si se especifica
     if room_id:
-        set_room_id(room_id)
+        set_config_value("ROOM_ID", room_id)
 
     # Detectar puerto si no se especifica
     if not port:
@@ -211,10 +247,10 @@ def main():
     # Flashear
     success = flash(port)
 
-    if success and room_id:
-        print(f"\n  Micro configurado como: {room_id}")
+    if success and mic_id:
+        print(f"\n  Micro configurado como: {mic_id} en {room_id or 'aula_01'}")
         print(f"  Desenchufa y enchufa el siguiente micro.")
-        print(f"  Luego ejecuta: python flash.py <siguiente_room_id>\n")
+        print(f"  Luego ejecuta: python flash.py mic_XX\n")
 
 
 if __name__ == "__main__":

@@ -2,16 +2,16 @@
  * Monitor de Ruido en Aulas
  * Firmware para M5Stack ATOM Echo S3R (ESP32-S3)
  *
- * Lee audio PDM del microfono integrado, calcula nivel de ruido en dB SPL
- * y envia datos via MQTT. El LED RGB indica el nivel de ruido.
+ * Lee audio del microfono integrado, calcula nivel de ruido en dB SPL
+ * y envia la media de 5 segundos via MQTT. El LED RGB indica el nivel.
  */
 
 #include <Arduino.h>
 #include <M5Unified.h>
 #include <WiFi.h>
+#include <esp_wpa2.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-// M5Unified handles I2S internally
 #include <math.h>
 
 #include "config.h"
@@ -31,8 +31,13 @@ float peakDbLevel = 0.0;
 unsigned long lastSendTime = 0;
 unsigned long lastPeakReset = 0;
 
+// Acumulador para media de 5 segundos
+float dbAccumulator = 0.0;
+float peakAccumulator = 0.0;
+int accumulatorCount = 0;
+
 // Topic MQTT
-char mqttTopic[64];
+char mqttTopic[128];
 
 // ============================================
 // Configuracion microfono via M5Unified
@@ -55,12 +60,21 @@ void setupMic() {
 // Conexion WiFi
 // ============================================
 void setupWiFi() {
-    Serial.printf("[WiFi] Conectando a %s", WIFI_SSID);
+    Serial.printf("[WiFi] Conectando a %s (EAP user: %s)\n", WIFI_SSID, WIFI_USER);
     WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.disconnect(true);
+    delay(100);
+
+    // Configurar WPA2-Enterprise (EAP-PEAP)
+    esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+    esp_wifi_sta_wpa2_ent_set_username((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+    esp_wifi_sta_wpa2_ent_set_password((uint8_t *)WIFI_PASSWORD, strlen(WIFI_PASSWORD));
+    esp_wifi_sta_wpa2_ent_enable();
+
+    WiFi.begin(WIFI_SSID);
 
     int intentos = 0;
-    while (WiFi.status() != WL_CONNECTED && intentos < 30) {
+    while (WiFi.status() != WL_CONNECTED && intentos < 40) {
         delay(500);
         Serial.print(".");
         intentos++;
@@ -79,7 +93,7 @@ void setupWiFi() {
 // ============================================
 void setupMQTT() {
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
-    snprintf(mqttTopic, sizeof(mqttTopic), "aulas/%s/noise", ROOM_ID);
+    snprintf(mqttTopic, sizeof(mqttTopic), "aulas/%s/%s/noise", ROOM_ID, MIC_ID);
     Serial.printf("[MQTT] Topic: %s\n", mqttTopic);
 }
 
@@ -89,6 +103,8 @@ void reconnectMQTT() {
 
         String clientId = "atom-echo-";
         clientId += String(ROOM_ID);
+        clientId += "-";
+        clientId += String(MIC_ID);
 
         bool connected;
         if (strlen(MQTT_USER) > 0) {
@@ -120,10 +136,7 @@ float calculateRMS(int16_t* samples, size_t count) {
 
 float rmsToDB(float rms) {
     if (rms < 1.0) rms = 1.0; // Evitar log(0)
-    // Convertir RMS a dB SPL aproximado
-    // El valor de referencia se ajusta segun la sensibilidad del microfono
     float db = 20.0 * log10(rms) + DB_OFFSET;
-    // Limitar rango razonable
     if (db < 20.0) db = 20.0;
     if (db > 120.0) db = 120.0;
     return db;
@@ -133,15 +146,11 @@ float rmsToDB(float rms) {
 // LED de estado segun nivel de ruido
 // ============================================
 void updateLED(float db) {
-    // M5Unified maneja el LED NeoPixel integrado
     if (db < THRESHOLD_LOW) {
-        // Verde - ambiente tranquilo
         M5.Lcd.clear(TFT_GREEN);
     } else if (db < THRESHOLD_HIGH) {
-        // Amarillo - nivel moderado
         M5.Lcd.clear(TFT_YELLOW);
     } else {
-        // Rojo - demasiado ruido
         M5.Lcd.clear(TFT_RED);
     }
 }
@@ -159,12 +168,17 @@ void readAudioLevel() {
     float rms = calculateRMS(sampleBuffer, SAMPLES_PER_READ);
     currentDbLevel = rmsToDB(rms);
 
-    // Actualizar pico (se resetea cada 10 segundos)
+    // Acumular para media
+    dbAccumulator += currentDbLevel;
+    if (currentDbLevel > peakAccumulator) {
+        peakAccumulator = currentDbLevel;
+    }
+    accumulatorCount++;
+
+    // Actualizar pico visual (se resetea cada 10 segundos)
     if (currentDbLevel > peakDbLevel) {
         peakDbLevel = currentDbLevel;
     }
-
-    // Resetear pico periodicamente
     if (millis() - lastPeakReset > 10000) {
         peakDbLevel = currentDbLevel;
         lastPeakReset = millis();
@@ -172,16 +186,27 @@ void readAudioLevel() {
 }
 
 // ============================================
-// Envio de datos por MQTT
+// Envio de datos por MQTT (media de 5s)
 // ============================================
 void sendNoiseData() {
+    if (accumulatorCount == 0) return;
+
+    float avgDb = dbAccumulator / accumulatorCount;
+    float peak = peakAccumulator;
+
+    // Resetear acumulador
+    dbAccumulator = 0.0;
+    peakAccumulator = 0.0;
+    accumulatorCount = 0;
+
     JsonDocument doc;
     doc["room"] = ROOM_ID;
-    doc["db"] = round(currentDbLevel * 10.0) / 10.0;   // 1 decimal
-    doc["peak"] = round(peakDbLevel * 10.0) / 10.0;     // 1 decimal
-    doc["timestamp"] = (unsigned long)(millis() / 1000); // Uptime en segundos
+    doc["mic"] = MIC_ID;
+    doc["db"] = round(avgDb * 10.0) / 10.0;
+    doc["peak"] = round(peak * 10.0) / 10.0;
+    doc["timestamp"] = (unsigned long)(millis() / 1000);
 
-    char payload[200];
+    char payload[256];
     serializeJson(doc, payload, sizeof(payload));
 
     if (mqttClient.publish(mqttTopic, payload)) {
@@ -195,7 +220,6 @@ void sendNoiseData() {
 // Setup
 // ============================================
 void setup() {
-    // Inicializar M5Stack
     auto cfg = M5.config();
     M5.begin(cfg);
 
@@ -204,21 +228,14 @@ void setup() {
 
     Serial.println("========================================");
     Serial.println("  Monitor de Ruido en Aulas");
-    Serial.printf("  Aula: %s\n", ROOM_ID);
+    Serial.printf("  Aula: %s  Micro: %s\n", ROOM_ID, MIC_ID);
     Serial.println("========================================");
 
-    // Configurar microfono via M5Unified
     setupMic();
-
-    // Conectar WiFi
     setupWiFi();
-
-    // Configurar MQTT
     setupMQTT();
 
-    // LED inicial azul (arrancando)
     M5.Lcd.clear(TFT_BLUE);
-
     Serial.println("[SISTEMA] Iniciado correctamente");
 }
 
@@ -228,26 +245,20 @@ void setup() {
 void loop() {
     M5.update();
 
-    // Mantener conexion MQTT
     if (!mqttClient.connected()) {
         reconnectMQTT();
     }
     mqttClient.loop();
 
-    // Leer nivel de audio continuamente
     readAudioLevel();
-
-    // Actualizar LED segun nivel
     updateLED(currentDbLevel);
 
-    // Enviar datos cada SEND_INTERVAL_MS
     unsigned long now = millis();
     if (now - lastSendTime >= SEND_INTERVAL_MS) {
         lastSendTime = now;
         sendNoiseData();
     }
 
-    // Boton: reiniciar pico al presionar
     if (M5.BtnA.wasPressed()) {
         peakDbLevel = currentDbLevel;
         Serial.println("[BOTON] Pico reseteado");
