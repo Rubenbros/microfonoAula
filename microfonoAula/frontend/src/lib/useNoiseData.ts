@@ -186,12 +186,18 @@ export function useNoiseData() {
         return sparklineData.current.get(roomId) || [];
     }, []);
 
-    // Conectar al montar
+    // Conectar al montar + polling periodico como respaldo
     useEffect(() => {
         loadRooms();
         connect();
 
+        // Polling cada 5s para detectar nuevos micros y cambios de estado
+        const pollInterval = setInterval(() => {
+            loadRooms();
+        }, 5000);
+
         return () => {
+            clearInterval(pollInterval);
             if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
             wsRef.current?.close();
         };

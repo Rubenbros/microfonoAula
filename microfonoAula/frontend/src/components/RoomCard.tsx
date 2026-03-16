@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { RoomSummary } from "@/lib/useNoiseData";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
@@ -52,6 +53,13 @@ function timeAgo(timestamp: number): string {
 }
 
 export default function RoomCard({ room, sparkline, onClick }: RoomCardProps) {
+    // Forzar re-render cada 5s para actualizar timeAgo y estado online
+    const [, setTick] = useState(0);
+    useEffect(() => {
+        const interval = setInterval(() => setTick(t => t + 1), 5000);
+        return () => clearInterval(interval);
+    }, []);
+
     const level = getNoiseLevel(room.db);
     const sparkData = sparkline.map((value, index) => ({ value, index }));
     const latestTimestamp = room.mics.length > 0

@@ -9,7 +9,16 @@
 #include <Arduino.h>
 #include <M5Unified.h>
 #include <WiFi.h>
-#include <esp_wpa2.h>
+#include <esp_wifi.h>
+#if __has_include(<esp_eap_client.h>)
+  #include <esp_eap_client.h>
+#else
+  #include <esp_wpa2.h>
+  #define esp_eap_client_set_identity esp_wifi_sta_wpa2_ent_set_identity
+  #define esp_eap_client_set_username esp_wifi_sta_wpa2_ent_set_username
+  #define esp_eap_client_set_password esp_wifi_sta_wpa2_ent_set_password
+  #define esp_eap_client_enable esp_wifi_sta_wpa2_ent_enable
+#endif
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <math.h>
@@ -59,31 +68,56 @@ void setupMic() {
 // ============================================
 // Conexion WiFi
 // ============================================
+void scanNetworks() {
+    Serial.println("[WiFi] Escaneando redes...");
+    int n = WiFi.scanNetworks();
+    if (n == 0) {
+        Serial.println("[WiFi] No se encontraron redes");
+    } else {
+        for (int i = 0; i < n; i++) {
+            Serial.printf("  %d: %s (RSSI: %d, Ch: %d, %s)\n",
+                i + 1, WiFi.SSID(i).c_str(), WiFi.RSSI(i),
+                WiFi.channel(i),
+                WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "Abierta" : "Protegida");
+        }
+    }
+    WiFi.scanDelete();
+}
+
 void setupWiFi() {
     Serial.printf("[WiFi] Conectando a %s (EAP user: %s)\n", WIFI_SSID, WIFI_USER);
     WiFi.mode(WIFI_STA);
     WiFi.disconnect(true);
-    delay(100);
+    delay(500);
+
+    // Escanear redes para diagnostico
+    scanNetworks();
 
     // Configurar WPA2-Enterprise (EAP-PEAP)
-    esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)WIFI_USER, strlen(WIFI_USER));
-    esp_wifi_sta_wpa2_ent_set_username((uint8_t *)WIFI_USER, strlen(WIFI_USER));
-    esp_wifi_sta_wpa2_ent_set_password((uint8_t *)WIFI_PASSWORD, strlen(WIFI_PASSWORD));
-    esp_wifi_sta_wpa2_ent_enable();
+    esp_eap_client_set_identity((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+    esp_eap_client_set_username((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+    esp_eap_client_set_password((uint8_t *)WIFI_PASSWORD, strlen(WIFI_PASSWORD));
+    esp_eap_client_enable();
 
     WiFi.begin(WIFI_SSID);
 
     int intentos = 0;
-    while (WiFi.status() != WL_CONNECTED && intentos < 40) {
+    while (WiFi.status() != WL_CONNECTED && intentos < 60) {
         delay(500);
         Serial.print(".");
         intentos++;
+
+        if (intentos % 10 == 0) {
+            Serial.printf(" (estado: %d, intento %d/60)\n", WiFi.status(), intentos);
+        }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.printf("\n[WiFi] Conectado! IP: %s\n", WiFi.localIP().toString().c_str());
+        Serial.printf("\n[WiFi] Conectado! IP: %s  RSSI: %d dBm\n",
+            WiFi.localIP().toString().c_str(), WiFi.RSSI());
     } else {
-        Serial.println("\n[WiFi] Error de conexion. Reiniciando...");
+        Serial.printf("\n[WiFi] Error de conexion (estado: %d). Reiniciando en 5s...\n", WiFi.status());
+        delay(5000);
         ESP.restart();
     }
 }
@@ -244,6 +278,13 @@ void setup() {
 // ============================================
 void loop() {
     M5.update();
+
+    // Reconectar WiFi si se pierde
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("[WiFi] Conexion perdida. Reiniciando...");
+        delay(1000);
+        ESP.restart();
+    }
 
     if (!mqttClient.connected()) {
         reconnectMQTT();

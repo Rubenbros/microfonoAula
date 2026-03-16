@@ -5,8 +5,8 @@
 // Configuracion WiFi (WPA2-Enterprise EAP-PEAP)
 // ============================================
 #define WIFI_SSID "ENLACES-A204"
-#define WIFI_USER "dam250v"
-#define WIFI_PASSWORD "q3TzPmt5"
+#define WIFI_USER "dam256v"
+#define WIFI_PASSWORD "JTg71@*b"
 
 // ============================================
 // Configuracion MQTT
@@ -20,7 +20,7 @@
 // Identificacion del aula y microfono
 // ============================================
 #define ROOM_ID "aula_01"
-#define MIC_ID  "mic_01"
+#define MIC_ID "mic_06"
 
 // ============================================
 // Parametros de medicion

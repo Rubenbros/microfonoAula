@@ -435,6 +435,26 @@ app.listen(HTTP_PORT, () => {
 });
 
 // ============================================
+// Chequeo periodico de mics offline
+// ============================================
+setInterval(() => {
+    const now = Date.now();
+    for (const [room, mics] of latestReadings.entries()) {
+        let changed = false;
+        for (const [mic, data] of mics.entries()) {
+            const wasOnline = (now - data._lastSeen) < MIC_OFFLINE_TIMEOUT + 1000;
+            const isOnline = (now - data._lastSeen) < MIC_OFFLINE_TIMEOUT;
+            if (wasOnline !== isOnline || !isOnline) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            broadcastRoomUpdate(room);
+        }
+    }
+}, 5000);
+
+// ============================================
 // Limpieza al cerrar
 // ============================================
 process.on("SIGINT", () => {
