@@ -2,11 +2,12 @@
 #define CONFIG_H
 
 // ============================================
-// Configuracion WiFi (WPA2-Enterprise EAP-PEAP)
+// Configuracion WiFi
 // ============================================
-#define WIFI_SSID "ENLACES-A204"
-#define WIFI_USER "dam256v"
-#define WIFI_PASSWORD "JTg71@*b"
+#define WIFI_ENTERPRISE false  // true = WPA2-Enterprise EAP-PEAP, false = WPA2-Personal
+#define WIFI_SSID "S25"
+#define WIFI_USER ""           // Solo para WPA2-Enterprise
+#define WIFI_PASSWORD "12345678"
 
 // ============================================
 // Configuracion MQTT

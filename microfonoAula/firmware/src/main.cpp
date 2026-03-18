@@ -10,14 +10,16 @@
 #include <M5Unified.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
-#if __has_include(<esp_eap_client.h>)
-  #include <esp_eap_client.h>
-#else
-  #include <esp_wpa2.h>
-  #define esp_eap_client_set_identity esp_wifi_sta_wpa2_ent_set_identity
-  #define esp_eap_client_set_username esp_wifi_sta_wpa2_ent_set_username
-  #define esp_eap_client_set_password esp_wifi_sta_wpa2_ent_set_password
-  #define esp_eap_client_enable esp_wifi_sta_wpa2_ent_enable
+#if WIFI_ENTERPRISE
+  #if __has_include(<esp_eap_client.h>)
+    #include <esp_eap_client.h>
+  #else
+    #include <esp_wpa2.h>
+    #define esp_eap_client_set_identity esp_wifi_sta_wpa2_ent_set_identity
+    #define esp_eap_client_set_username esp_wifi_sta_wpa2_ent_set_username
+    #define esp_eap_client_set_password esp_wifi_sta_wpa2_ent_set_password
+    #define esp_eap_client_enable esp_wifi_sta_wpa2_ent_enable
+  #endif
 #endif
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -85,30 +87,50 @@ void scanNetworks() {
 }
 
 void setupWiFi() {
-    Serial.printf("[WiFi] Conectando a %s (EAP user: %s)\n", WIFI_SSID, WIFI_USER);
     WiFi.mode(WIFI_STA);
-    WiFi.disconnect(true);
-    delay(500);
+    WiFi.disconnect(true, true);  // disconnect + borrar credenciales guardadas
+    delay(1000);
 
     // Escanear redes para diagnostico
     scanNetworks();
+    delay(500);
 
-    // Configurar WPA2-Enterprise (EAP-PEAP)
-    esp_eap_client_set_identity((uint8_t *)WIFI_USER, strlen(WIFI_USER));
-    esp_eap_client_set_username((uint8_t *)WIFI_USER, strlen(WIFI_USER));
-    esp_eap_client_set_password((uint8_t *)WIFI_PASSWORD, strlen(WIFI_PASSWORD));
-    esp_eap_client_enable();
-
-    WiFi.begin(WIFI_SSID);
+    #if WIFI_ENTERPRISE
+        Serial.printf("[WiFi] Conectando a %s (WPA2-Enterprise, user: %s)\n", WIFI_SSID, WIFI_USER);
+        esp_eap_client_set_identity((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+        esp_eap_client_set_username((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+        esp_eap_client_set_password((uint8_t *)WIFI_PASSWORD, strlen(WIFI_PASSWORD));
+        esp_eap_client_enable();
+        WiFi.begin(WIFI_SSID);
+    #else
+        Serial.printf("[WiFi] Conectando a %s (WPA2-Personal)\n", WIFI_SSID);
+        Serial.printf("[WiFi] Password: %s\n", WIFI_PASSWORD);
+        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    #endif
 
     int intentos = 0;
-    while (WiFi.status() != WL_CONNECTED && intentos < 60) {
-        delay(500);
-        Serial.print(".");
+    while (WiFi.status() != WL_CONNECTED && intentos < 90) {
+        delay(1000);
+        Serial.printf(".");
         intentos++;
 
         if (intentos % 10 == 0) {
-            Serial.printf(" (estado: %d, intento %d/60)\n", WiFi.status(), intentos);
+            Serial.printf(" (estado: %d, intento %d/90)\n", WiFi.status(), intentos);
+            // Reintentar conexion cada 30 intentos
+            if (intentos % 30 == 0 && WiFi.status() != WL_CONNECTED) {
+                Serial.println("[WiFi] Reintentando conexion...");
+                WiFi.disconnect(true, true);
+                delay(1000);
+                #if WIFI_ENTERPRISE
+                    esp_eap_client_set_identity((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+                    esp_eap_client_set_username((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+                    esp_eap_client_set_password((uint8_t *)WIFI_PASSWORD, strlen(WIFI_PASSWORD));
+                    esp_eap_client_enable();
+                    WiFi.begin(WIFI_SSID);
+                #else
+                    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+                #endif
+            }
         }
     }
 
