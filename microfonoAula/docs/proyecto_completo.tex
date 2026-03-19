@@ -1,0 +1,1269 @@
+\documentclass[12pt,a4paper]{report}
+
+% ============================================
+% Paquetes
+% ============================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows.meta,positioning,fit,backgrounds}
+
+\geometry{margin=2.5cm}
+
+% ============================================
+% Colores
+% ============================================
+\definecolor{codegreen}{rgb}{0.0, 0.5, 0.0}
+\definecolor{codegray}{rgb}{0.5, 0.5, 0.5}
+\definecolor{codepurple}{rgb}{0.58, 0.0, 0.82}
+\definecolor{backcolour}{rgb}{0.97, 0.97, 0.97}
+\definecolor{dbgreen}{HTML}{22c55e}
+\definecolor{dbyellow}{HTML}{eab308}
+\definecolor{dbred}{HTML}{ef4444}
+\definecolor{linkblue}{HTML}{2563eb}
+
+% ============================================
+% Configuracion de listings
+% ============================================
+\lstdefinestyle{code}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codepurple}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{red!70!black},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{gray!30},
+    xleftmargin=1.5em,
+    framexleftmargin=1.5em,
+}
+
+\lstdefinestyle{json}{
+    style=code,
+    morestring=[b]",
+    literate=
+     *{0}{{{\color{codepurple}0}}}{1}
+      {1}{{{\color{codepurple}1}}}{1}
+      {2}{{{\color{codepurple}2}}}{1}
+      {3}{{{\color{codepurple}3}}}{1}
+      {4}{{{\color{codepurple}4}}}{1}
+      {5}{{{\color{codepurple}5}}}{1}
+      {6}{{{\color{codepurple}6}}}{1}
+      {7}{{{\color{codepurple}7}}}{1}
+      {8}{{{\color{codepurple}8}}}{1}
+      {9}{{{\color{codepurple}9}}}{1}
+      {:}{{{\color{codegray}:}}}{1}
+      {,}{{{\color{codegray},}}}{1},
+}
+
+\lstset{style=code}
+
+% ============================================
+% Cabeceras
+% ============================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{Monitor de Ruido en Aulas}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ============================================
+% Hyperref
+% ============================================
+\hypersetup{
+    colorlinks=true,
+    linkcolor=linkblue,
+    urlcolor=linkblue,
+    citecolor=linkblue,
+    pdfauthor={IES Enlaces},
+    pdftitle={Monitor de Ruido en Aulas - Documentacion Completa},
+}
+
+% ============================================
+% Titulo
+% ============================================
+\title{
+    \vspace{-2cm}
+    {\Huge\bfseries Monitor de Ruido en Aulas}\\[0.5cm]
+    {\Large Sistema de monitorizaci\'on ac\'ustica en tiempo real}\\[0.5cm]
+    {\large Documentaci\'on t\'ecnica completa}\\[1cm]
+    \rule{\textwidth}{1pt}\\[0.5cm]
+    {\normalsize
+    \begin{tabular}{ll}
+    \textbf{Centro:} & IES Enlaces \\
+    \textbf{Repositorio:} & \url{https://github.com/Rubenbros/microfonoAula} \\
+    \textbf{Stack:} & ESP32 + MQTT + Node.js + Next.js \\
+    \textbf{Fecha:} & Marzo 2026 \\
+    \end{tabular}
+    }
+}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+% CAPITULO 1: Introduccion
+% ============================================================
+\chapter{Introducci\'on}
+
+\section{Descripci\'on del proyecto}
+
+El \textbf{Monitor de Ruido en Aulas} es un sistema de monitorizaci\'on ac\'ustica en tiempo real dise\~nado para medir, registrar y visualizar los niveles de ruido en aulas escolares. El sistema utiliza microcontroladores M5Stack (basados en ESP32) equipados con micr\'ofonos MEMS integrados que capturan audio, aplican filtrado A-weighting conforme a la norma IEC~61672, y transmiten las mediciones v\'ia MQTT a un servidor central.
+
+El objetivo principal es proporcionar al profesorado y equipo directivo una herramienta para:
+
+\begin{itemize}
+    \item Monitorizar en tiempo real el nivel de ruido de cada aula.
+    \item Detectar picos de ruido y patrones temporales.
+    \item Comparar niveles entre diferentes zonas del aula (micr\'ofonos distribuidos).
+    \item Almacenar hist\'orico de mediciones para an\'alisis posterior.
+    \item Visualizar los datos en un dashboard web accesible desde cualquier dispositivo.
+\end{itemize}
+
+\section{Arquitectura general}
+
+El sistema sigue una arquitectura IoT cl\'asica de tres capas:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.5cm,
+    box/.style={draw, rounded corners, minimum height=1.2cm, minimum width=3cm, align=center, fill=#1!15, font=\small},
+    arrow/.style={-{Stealth[length=3mm]}, thick},
+]
+    % Capa dispositivos
+    \node[box=blue] (atom1) {ATOM Echo\\mic\_01..06};
+    \node[box=blue, right=2cm of atom1] (core2) {Core2\\mic\_central};
+
+    % Broker
+    \node[box=orange, below=2cm of $(atom1)!0.5!(core2)$] (mqtt) {Broker MQTT\\Puerto 1883};
+
+    % Backend
+    \node[box=green, below=2cm of mqtt] (backend) {Backend Node.js\\Express + SQLite};
+
+    % Frontend
+    \node[box=purple, below=2cm of backend] (frontend) {Frontend Next.js\\Dashboard React};
+
+    % Flechas
+    \draw[arrow] (atom1) -- node[left, font=\scriptsize] {WiFi} (mqtt);
+    \draw[arrow] (core2) -- node[right, font=\scriptsize] {WiFi} (mqtt);
+    \draw[arrow, <->] (mqtt) -- node[right, font=\scriptsize] {MQTT} (backend);
+    \draw[arrow, <->] (backend) -- node[right, font=\scriptsize] {REST + WS} (frontend);
+
+    % Labels
+    \node[left=0.5cm of atom1, font=\footnotesize\itshape, text=gray] {Capa f\'isica};
+    \node[left=0.5cm of mqtt, font=\footnotesize\itshape, text=gray] {Mensajer\'ia};
+    \node[left=0.5cm of backend, font=\footnotesize\itshape, text=gray] {Servidor};
+    \node[left=0.5cm of frontend, font=\footnotesize\itshape, text=gray] {Visualizaci\'on};
+\end{tikzpicture}
+\caption{Arquitectura general del sistema}
+\end{figure}
+
+\section{Stack tecnol\'ogico}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\textbf{Capa} & \textbf{Tecnolog\'ia} & \textbf{Versi\'on} \\
+\midrule
+Firmware & C++ (Arduino) + PlatformIO & ESP-IDF 5.x \\
+Comunicaci\'on & MQTT (Aedes / Mosquitto) & 5.x \\
+Backend & Node.js + Express + SQLite & 20 LTS \\
+Frontend & Next.js + React + TypeScript & 15.1 / 19.0 \\
+Visualizaci\'on & Recharts + Tailwind CSS & 2.15 / 3.4 \\
+Base de datos & SQLite (better-sqlite3) & 11.7 \\
+\bottomrule
+\end{tabularx}
+\caption{Stack tecnol\'ogico del proyecto}
+\end{table}
+
+% ============================================================
+% CAPITULO 2: Hardware
+% ============================================================
+\chapter{Hardware}
+
+\section{M5Stack ATOM Echo S3R (Micr\'ofono distribuido)}
+
+El ATOM Echo S3R es el dispositivo principal del sistema. Se despliegan 6 unidades por aula en posiciones estrat\'egicas para cubrir diferentes zonas.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Caracter\'istica} & \textbf{Especificaci\'on} \\
+\midrule
+MCU & ESP32-S3 (240 MHz dual-core, PSRAM) \\
+Micr\'ofono & PDM MEMS integrado \\
+Interfaz audio & I2S \\
+Conectividad & WiFi 802.11 b/g/n (2.4 GHz) \\
+LED & RGB integrado (indicador de estado) \\
+Bot\'on & Bot\'on A (calibraci\'on / reset pico) \\
+Alimentaci\'on & USB-C (5V) \\
+Tama\~no & 24 $\times$ 24 $\times$ 17 mm \\
+\bottomrule
+\end{tabularx}
+\caption{Especificaciones del ATOM Echo S3R}
+\end{table}
+
+\subsection{Configuraci\'on GPIO (I2S)}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Se\~nal} & \textbf{GPIO} & \textbf{Funci\'on} \\
+\midrule
+LRCK & GPIO 3 & Left/Right Clock \\
+SCLK & GPIO 17 & Serial Clock \\
+MCLK & GPIO 11 & Master Clock \\
+DSDIN & GPIO 48 & Data Serial In \\
+\bottomrule
+\end{tabular}
+\caption{Pines I2S del ATOM Echo S3R}
+\end{table}
+
+\subsection{Indicador LED}
+
+El LED RGB indica el nivel de ruido actual:
+
+\begin{itemize}
+    \item \textcolor{dbgreen}{\textbf{Verde}}: $< 50$ dBA (ambiente tranquilo)
+    \item \textcolor{dbyellow}{\textbf{Amarillo}}: $50-70$ dBA (nivel moderado)
+    \item \textcolor{dbred}{\textbf{Rojo}}: $> 70$ dBA (nivel alto)
+    \item \textcolor{blue}{\textbf{Azul}}: Modo calibraci\'on / warmup
+\end{itemize}
+
+\subsection{Disposici\'on en el aula}
+
+Se colocan 6 micr\'ofonos ATOM Echo en una cuadr\'icula 2$\times$3 para cubrir la superficie del aula:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    mic/.style={circle, draw, fill=dbgreen!30, minimum size=1.2cm, font=\small\bfseries},
+]
+    \node[font=\small, fill=gray!20, minimum width=8cm, minimum height=0.6cm] at (3.5, 4.5) {PIZARRA};
+
+    \node[mic] at (1, 3) {01};
+    \node[mic] at (1, 1) {03};
+    \node[mic] at (1, -1) {05};
+
+    \node[mic] at (6, 3) {02};
+    \node[mic] at (6, 1) {04};
+    \node[mic] at (6, -1) {06};
+
+    \draw[dashed, gray] (-0.5, -2) rectangle (7.5, 4);
+
+    \node[font=\small, fill=gray!20, minimum width=0.6cm, minimum height=3cm, rotate=90] at (3.5, -2.5) {PUERTA};
+\end{tikzpicture}
+\caption{Disposici\'on de los 6 micr\'ofonos distribuidos en el aula}
+\end{figure}
+
+\section{M5Stack Core2 v1.1 (Micr\'ofono central)}
+
+El Core2 se utiliza como micr\'ofono central opcional, ofreciendo informaci\'on visual en su pantalla LCD.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Caracter\'istica} & \textbf{Especificaci\'on} \\
+\midrule
+MCU & ESP32 (240 MHz dual-core, 8 MB PSRAM) \\
+Micr\'ofono & SPM1423 (PDM) \\
+Pantalla & LCD IPS 320$\times$240 (16-bit color) \\
+Identificador & \texttt{mic\_central} \\
+Interfaz & Muestra dBA, RSSI WiFi, uptime, estado \\
+\bottomrule
+\end{tabularx}
+\caption{Especificaciones del M5Stack Core2}
+\end{table}
+
+% ============================================================
+% CAPITULO 3: Firmware
+% ============================================================
+\chapter{Firmware}
+
+\section{Visi\'on general}
+
+El firmware se ejecuta en los microcontroladores ESP32 y realiza las siguientes funciones:
+
+\begin{enumerate}
+    \item Captura de audio PCM a 16 kHz mediante I2S (M5Unified).
+    \item Filtrado A-weighting IIR para ponderaci\'on frecuencial.
+    \item C\'alculo de nivel RMS y conversi\'on a dBA.
+    \item Acumulaci\'on de mediciones durante 5 segundos.
+    \item Publicaci\'on MQTT con la media y el pico del intervalo.
+    \item Indicaci\'on visual mediante LED RGB.
+\end{enumerate}
+
+\section{Filtro A-weighting (dsp.h)}
+
+\subsection{Fundamento te\'orico}
+
+La ponderaci\'on A (A-weighting) es un filtro frecuencial definido en la norma \textbf{IEC~61672} que modela la respuesta del o\'ido humano. Aten\'ua las frecuencias bajas ($< 500$ Hz) y muy altas ($> 6$ kHz) donde el o\'ido es menos sensible.
+
+La implementaci\'on utiliza una cascada de \textbf{3 secciones biquad IIR} en forma \textit{Direct Form II Transposed}:
+
+\begin{equation}
+H(z) = H_1(z) \cdot H_2(z) \cdot H_3(z) \cdot G
+\end{equation}
+
+Donde $G = 1.24358$ es la ganancia de normalizaci\'on a 0 dB en 1 kHz.
+
+\subsection{Secciones del filtro}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{clcc}
+\toprule
+\textbf{Secci\'on} & \textbf{Tipo} & \textbf{Frecuencia corte} & \textbf{Orden} \\
+\midrule
+Biquad 1 & Paso alto & 20.6 Hz & 2\textsuperscript{o} ($Q = 0.5$) \\
+Biquad 2 & Paso alto & 107.7 Hz & 1\textsuperscript{er} \\
+Biquad 3 & Paso alto & 737.9 Hz & 1\textsuperscript{er} \\
+\bottomrule
+\end{tabular}
+\caption{Secciones del filtro A-weighting}
+\end{table}
+
+\textbf{Nota:} El polo doble a 12194 Hz se omite por estar por encima de la frecuencia de Nyquist (8 kHz a $f_s = 16$ kHz). Error t\'ipico: $< 2$ dB en el rango 100--8000 Hz.
+
+\subsection{Implementaci\'on}
+
+Cada secci\'on biquad procesa una muestra seg\'un:
+
+\begin{equation}
+y[n] = b_0 \cdot x[n] + s_1[n-1]
+\end{equation}
+\begin{equation}
+s_1[n] = b_1 \cdot x[n] - a_1 \cdot y[n] + s_2[n-1]
+\end{equation}
+\begin{equation}
+s_2[n] = b_2 \cdot x[n] - a_2 \cdot y[n]
+\end{equation}
+
+\begin{lstlisting}[language=C, caption={Procesado biquad (dsp.h)}]
+static inline float biquad_process(Biquad* f, float x) {
+    float y = f->b0 * x + f->s1;
+    f->s1 = f->b1 * x - f->a1 * y + f->s2;
+    f->s2 = f->b2 * x - f->a2 * y;
+    return y;
+}
+\end{lstlisting}
+
+\subsection{Coeficientes}
+
+\begin{lstlisting}[language=C, caption={Coeficientes del filtro A-weighting para $f_s = 16000$ Hz}]
+// Biquad 1: 2nd-order HP, fc=20.6Hz, Q=0.5
+{ b0=0.991965, b1=-1.983931, b2=0.991965,
+  a1=-1.983906, a2=0.983946 }
+
+// Biquad 2: 1st-order HP, fc=107.7Hz
+{ b0=0.979286, b1=-0.979286, b2=0.0,
+  a1=-0.958573, a2=0.0 }
+
+// Biquad 3: 1st-order HP, fc=737.9Hz
+{ b0=0.873487, b1=-0.873487, b2=0.0,
+  a1=-0.746974, a2=0.0 }
+\end{lstlisting}
+
+\section{Pipeline de medici\'on}
+
+El proceso completo desde la captura de audio hasta el env\'io MQTT es:
+
+\begin{enumerate}
+    \item \textbf{Captura}: 1024 muestras PCM 16-bit a 16 kHz ($\approx 64$ ms por buffer).
+    \item \textbf{Filtrado}: Cada muestra pasa por las 3 secciones biquad + ganancia.
+    \item \textbf{RMS}: C\'alculo del valor eficaz del buffer filtrado.
+
+    \begin{equation}
+    \text{RMS} = \sqrt{\frac{1}{N} \sum_{i=0}^{N-1} x_{\text{filtrado}}[i]^2}
+    \end{equation}
+
+    \item \textbf{Conversi\'on a dB}:
+
+    \begin{equation}
+    \text{dBA} = 20 \cdot \log_{10}(\text{RMS}) + \text{DB\_OFFSET}
+    \end{equation}
+
+    Con l\'imites $[20, 120]$ dBA.
+
+    \item \textbf{Acumulaci\'on}: Se acumulan $\sim$80 buffers durante 5 segundos.
+    \item \textbf{Env\'io MQTT}: Media aritm\'etica del intervalo + pico m\'aximo.
+\end{enumerate}
+
+\section{Calibraci\'on}
+
+\subsection{Offset est\'atico (DB\_OFFSET)}
+
+Cada micr\'ofono tiene un par\'ametro \texttt{DB\_OFFSET} en \texttt{config.h} que permite compensar diferencias de sensibilidad:
+
+\begin{lstlisting}[language=C]
+#define DB_OFFSET 0.0  // Ajustar segun microfono
+\end{lstlisting}
+
+\subsection{Modo calibraci\'on interactivo}
+
+Manteniendo pulsado el \textbf{Bot\'on A} durante 2 segundos se activa el modo calibraci\'on:
+
+\begin{enumerate}
+    \item El dispositivo mide durante 10 segundos.
+    \item Calcula la media de todas las lecturas.
+    \item Muestra por puerto serie el resultado y la f\'ormula de ajuste.
+\end{enumerate}
+
+\begin{equation}
+\text{DB\_OFFSET}_{\text{nuevo}} = \text{DB\_OFFSET}_{\text{actual}} + (\text{dB}_{\text{referencia}} - \text{dB}_{\text{medido}})
+\end{equation}
+
+\subsection{Calibraci\'on por micro en el backend}
+
+Adem\'as del offset en firmware, el backend dispone de una tabla de calibraci\'on que aplica correcciones sin necesidad de reflashear:
+
+\begin{lstlisting}[language=Java, caption={Calibraci\'on en el backend (index.js)}]
+const MIC_CALIBRATION = {
+    "mic_central": 7.0,  // Resta 7 dB al central
+};
+
+function applyCalibration(mic, dbValue) {
+    const offset = MIC_CALIBRATION[mic] || 0;
+    return Math.round((dbValue - offset) * 10) / 10;
+}
+\end{lstlisting}
+
+\section{Conectividad WiFi}
+
+El firmware soporta dos modos de autenticaci\'on:
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Par\'ametro} & \textbf{WPA2-Personal} & \textbf{WPA2-Enterprise} \\
+\midrule
+\texttt{WIFI\_ENTERPRISE} & \texttt{false} & \texttt{true} \\
+\texttt{WIFI\_SSID} & Nombre de la red & Nombre de la red \\
+\texttt{WIFI\_USER} & (vac\'io) & Usuario EAP-PEAP \\
+\texttt{WIFI\_PASSWORD} & Clave WiFi & Clave EAP \\
+\bottomrule
+\end{tabularx}
+\caption{Modos de autenticaci\'on WiFi}
+\end{table}
+
+Estrategia de reconexion: 90 intentos con 1 segundo entre cada uno. Cada 30 intentos realiza un ciclo completo de desconexi\'on y reconexion. Si agota los intentos, reinicia el ESP32.
+
+\section{Protocolo MQTT}
+
+\subsection{Topic}
+
+\begin{verbatim}
+aulas/{ROOM_ID}/{MIC_ID}/noise
+\end{verbatim}
+
+Ejemplo: \texttt{aulas/aula\_01/mic\_03/noise}
+
+\subsection{Payload JSON}
+
+\begin{lstlisting}[style=json, caption={Mensaje MQTT de un micr\'ofono}]
+{
+    "room": "aula_01",
+    "mic": "mic_03",
+    "db": 52.3,
+    "peak": 67.1,
+    "timestamp": 1773942550
+}
+\end{lstlisting}
+
+\section{Configuraci\'on (config.h)}
+
+\begin{lstlisting}[language=C, caption={Archivo de configuraci\'on completo}]
+// WiFi
+#define WIFI_ENTERPRISE false
+#define WIFI_SSID "IOT2"
+#define WIFI_USER ""
+#define WIFI_PASSWORD "IOT_Enlaces_205"
+
+// MQTT
+#define MQTT_BROKER "broker.hivemq.com"
+#define MQTT_PORT 1883
+
+// Identificacion
+#define ROOM_ID "aula_01"
+#define MIC_ID "mic_06"
+
+// Medicion
+#define SEND_INTERVAL_MS 5000
+#define SAMPLE_RATE 16000
+#define SAMPLES_PER_READ 1024
+#define DB_OFFSET 0.0
+
+// Umbrales
+#define THRESHOLD_LOW 50.0
+#define THRESHOLD_HIGH 70.0
+\end{lstlisting}
+
+\section{Compilaci\'on (platformio.ini)}
+
+\begin{lstlisting}[caption={Configuraci\'on PlatformIO para ATOM Echo S3R}]
+[env:atom-echo-s3r]
+platform = espressif32
+board = esp32-s3-devkitc-1
+framework = arduino
+monitor_speed = 115200
+build_flags =
+    -DARDUINO_USB_CDC_ON_BOOT=1
+    -DBOARD_HAS_PSRAM
+    -DCORE_DEBUG_LEVEL=1
+lib_deps =
+    m5stack/M5Unified@^0.2.2
+    knolleary/PubSubClient@^2.8
+    bblanchon/ArduinoJson@^7.2.1
+\end{lstlisting}
+
+% ============================================================
+% CAPITULO 4: Herramienta de flasheo
+% ============================================================
+\chapter{Herramienta de flasheo}
+
+\section{flash.py}
+
+Script Python para flashear m\'ultiples dispositivos ATOM Echo de forma automatizada.
+
+\subsection{Caracter\'isticas}
+
+\begin{itemize}
+    \item Autodetecci\'on de puertos COM (CP210x, CH340, JTAG, USB gen\'erico).
+    \item Modificaci\'on din\'amica de \texttt{config.h} antes de compilar.
+    \item Soporte para flasheo secuencial de los 6 micr\'ofonos (\texttt{--all}).
+    \item Credenciales WPA2-Enterprise prealmacenadas por micro.
+    \item Configuraci\'on WiFi por l\'inea de comandos.
+\end{itemize}
+
+\subsection{Uso}
+
+\begin{lstlisting}[language=bash, caption={Ejemplos de uso de flash.py}]
+# Flashear un micro con credenciales Enterprise prealmacenadas
+python flash.py mic_01
+
+# Flashear con WiFi personalizado (WPA2-Personal)
+python flash.py mic_01 --wifi MiRed MiClave
+
+# Flashear con WiFi Enterprise (3 parametros)
+python flash.py mic_01 --wifi ENLACES-A204 dam251v Shb*XEdv
+
+# Flashear todos los micros
+python flash.py --all --wifi MiRed MiClave
+
+# Listar puertos COM disponibles
+python flash.py --list
+\end{lstlisting}
+
+\subsection{Credenciales WPA2-Enterprise}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{MIC\_ID} & \textbf{Usuario} & \textbf{Contrase\~na} \\
+\midrule
+mic\_01 & dam251v & Shb*XEdv \\
+mic\_02 & dam252v & blG1K1vT \\
+mic\_03 & dam253v & 1B6\%CHbl \\
+mic\_04 & dam254v & 8tE\%Phs@ \\
+mic\_05 & dam255v & \%@CXFvVm \\
+mic\_06 & dam256v & JTg71@*b \\
+\bottomrule
+\end{tabular}
+\caption{Credenciales Enterprise por micr\'ofono}
+\end{table}
+
+% ============================================================
+% CAPITULO 5: Backend
+% ============================================================
+\chapter{Backend}
+
+\section{Arquitectura}
+
+El backend es un servidor \textbf{Node.js} que integra:
+
+\begin{itemize}
+    \item \textbf{Express.js}: API REST (puerto 3001).
+    \item \textbf{WebSocket} (ws): Actualizaciones en tiempo real (puerto 3002).
+    \item \textbf{Cliente MQTT}: Recibe datos de los micr\'ofonos.
+    \item \textbf{SQLite}: Almacenamiento persistente con modo WAL.
+    \item \textbf{Broker MQTT integrado} (Aedes, opcional): Elimina la dependencia de Docker/Mosquitto.
+\end{itemize}
+
+\section{Base de datos}
+
+\subsection{Esquema}
+
+\begin{lstlisting}[language=SQL, caption={Esquema de la base de datos SQLite}]
+CREATE TABLE noise_readings (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    room       TEXT    NOT NULL,
+    mic        TEXT    NOT NULL DEFAULT 'mic_01',
+    db_level   REAL    NOT NULL,
+    peak_level REAL    NOT NULL,
+    timestamp  INTEGER NOT NULL,
+    created_at TEXT    DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_room_mic_timestamp
+    ON noise_readings (room, mic, timestamp DESC);
+\end{lstlisting}
+
+\subsection{Optimizaciones}
+
+\begin{itemize}
+    \item \textbf{WAL mode}: Permite lecturas concurrentes durante escrituras.
+    \item \textbf{Synchronous NORMAL}: Balance entre rendimiento y seguridad.
+    \item \textbf{Prepared statements}: Consultas precompiladas para rendimiento.
+    \item \textbf{\'Indice compuesto}: B\'usquedas r\'apidas por aula, micro y rango temporal.
+\end{itemize}
+
+\section{API REST}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{M\'etodo} & \textbf{Endpoint} & \textbf{Descripci\'on} \\
+\midrule
+GET & \texttt{/api/rooms} & Lista de aulas con resumen actual \\
+GET & \texttt{/api/rooms/:id} & Detalle de un aula (todos sus micros) \\
+GET & \texttt{/api/rooms/:id/history} & Hist\'orico de un aula (par\'ams: from, to) \\
+GET & \texttt{/api/rooms/:id/mics/:micId/history} & Hist\'orico de un micro espec\'ifico \\
+GET & \texttt{/api/stats} & Estad\'isticas globales (par\'am: since) \\
+GET & \texttt{/api/health} & Estado del sistema (MQTT, uptime) \\
+\bottomrule
+\end{tabularx}
+\caption{Endpoints de la API REST}
+\end{table}
+
+\subsection{Ejemplo de respuesta: /api/rooms}
+
+\begin{lstlisting}[style=json, caption={Respuesta del endpoint /api/rooms}]
+{
+  "rooms": [
+    {
+      "room": "aula_01",
+      "db": 43.9,
+      "peak": 73.8,
+      "micCount": 7,
+      "onlineCount": 7,
+      "mics": [
+        {
+          "room": "aula_01",
+          "mic": "mic_central",
+          "db": 38.1,
+          "peak": 72.3,
+          "timestamp": 1773942550,
+          "online": true
+        }
+      ]
+    }
+  ]
+}
+\end{lstlisting}
+
+\section{Agregaci\'on: mediana vs. media}
+
+El valor de dB mostrado para cada aula se calcula como la \textbf{mediana} de los micr\'ofonos online, en lugar de la media aritm\'etica. Esto proporciona robustez frente a micr\'ofonos at\'ipicos (outliers):
+
+\begin{lstlisting}[language=Java, caption={C\'alculo de mediana para agregaci\'on del aula}]
+function median(values) {
+    if (values.length === 0) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0
+        ? sorted[mid]
+        : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+const medianDb = onlineMics.length > 0
+    ? median(onlineMics.map(m => m.db))
+    : 0;
+\end{lstlisting}
+
+\textbf{Justificaci\'on:} Con 7 micr\'ofonos, si uno de ellos (p.ej.\ mic\_central) lee sistem\'aticamente m\'as alto por estar m\'as cerca de la fuente de sonido, la mediana ignora este valor extremo y refleja mejor el nivel general del aula.
+
+\section{Protocolo WebSocket}
+
+La comunicaci\'on WebSocket permite actualizaciones en tiempo real sin polling:
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Tipo de mensaje} & \textbf{Descripci\'on} \\
+\midrule
+\texttt{init} & Estado completo de todas las aulas (al conectar) \\
+\texttt{room\_update} & Actualizaci\'on de una aula (cada 5s o al cambiar estado) \\
+\texttt{mic\_update} & Actualizaci\'on individual de un micr\'ofono \\
+\bottomrule
+\end{tabularx}
+\caption{Tipos de mensaje WebSocket}
+\end{table}
+
+\section{Broker MQTT integrado}
+
+Si se establece \texttt{USE\_INTERNAL\_BROKER=true}, el backend arranca un broker MQTT (Aedes) en el puerto 1883, eliminando la necesidad de Docker o Mosquitto externo:
+
+\begin{lstlisting}[language=Java, caption={Broker MQTT integrado (broker.js)}]
+const aedes = require("aedes")();
+const net = require("net");
+const PORT = parseInt(process.env.MQTT_INTERNAL_PORT || "1883");
+
+const server = net.createServer(aedes.handle);
+server.listen(PORT, () => {
+    console.log(`[BROKER] MQTT broker en puerto ${PORT}`);
+});
+\end{lstlisting}
+
+\section{Detecci\'on de micr\'ofonos offline}
+
+Un micr\'ofono se considera \textbf{offline} si no env\'ia datos durante 15 segundos. El backend comprueba cada 5 segundos y notifica a los clientes WebSocket del cambio de estado.
+
+\section{Variables de entorno}
+
+\begin{lstlisting}[caption={Archivo .env.example}]
+MQTT_BROKER=mqtt://localhost
+MQTT_PORT=1883
+HTTP_PORT=3001
+WS_PORT=3002
+DB_PATH=./data/noise.db
+USE_INTERNAL_BROKER=true
+\end{lstlisting}
+
+\section{Dependencias}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Paquete} & \textbf{Versi\'on} \\
+\midrule
+aedes & 0.50.0 \\
+better-sqlite3 & 11.7.0 \\
+express & 4.21.2 \\
+mqtt & 5.10.4 \\
+ws & 8.18.0 \\
+dotenv & 16.4.7 \\
+\bottomrule
+\end{tabular}
+\caption{Dependencias del backend}
+\end{table}
+
+% ============================================================
+% CAPITULO 6: Frontend
+% ============================================================
+\chapter{Frontend}
+
+\section{Arquitectura}
+
+El frontend es una aplicaci\'on \textbf{Next.js 15} con el App Router de React 19. Utiliza:
+
+\begin{itemize}
+    \item \textbf{TypeScript}: Tipado est\'atico en todo el c\'odigo.
+    \item \textbf{Tailwind CSS}: Estilos utility-first con colores personalizados.
+    \item \textbf{Recharts}: Gr\'aficas interactivas de nivel de ruido.
+    \item \textbf{WebSocket}: Actualizaciones en tiempo real.
+    \item \textbf{REST fallback}: Polling cada 5s si WebSocket no est\'a disponible.
+\end{itemize}
+
+\section{Estructura de componentes}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Componente} & \textbf{Funci\'on} \\
+\midrule
+\texttt{page.tsx} & Dashboard principal: grid de aulas, barra de estado \\
+\texttt{layout.tsx} & Cabecera con logo, leyenda de colores, indicador de conexi\'on \\
+\texttt{RoomCard.tsx} & Tarjeta por aula: valor dB grande, pico, sparkline, conteo de micros \\
+\texttt{RoomDetailView.tsx} & Vista detallada: mapa 2$\times$3, micro central, estad\'isticas \\
+\texttt{MicDetailView.tsx} & Detalle individual: valor dB, gr\'afica hist\'orica \\
+\texttt{NoiseChart.tsx} & Gr\'afica Recharts: \'area dB + l\'inea pico + l\'ineas referencia \\
+\texttt{useNoiseData.ts} & Hook personalizado: WebSocket, REST, navegaci\'on, estado \\
+\bottomrule
+\end{tabularx}
+\caption{Componentes del frontend}
+\end{table}
+
+\section{Vistas del dashboard}
+
+\subsection{Vista general (Dashboard)}
+
+Muestra una cuadr\'icula responsive (1--4 columnas) con una tarjeta por aula. Cada tarjeta incluye:
+
+\begin{itemize}
+    \item N\'umero grande con el nivel actual en dBA (con animaci\'on pulse).
+    \item Valor pico.
+    \item Tiempo desde la \'ultima lectura (``hace X segundos'').
+    \item Conteo de micr\'ofonos online/total.
+    \item Sparkline con las \'ultimas 30 lecturas.
+    \item Color de fondo seg\'un nivel (verde/amarillo/rojo).
+\end{itemize}
+
+Barra superior de estado: indicador de conexi\'on, total de aulas, media global, aulas por encima del umbral.
+
+\subsection{Vista detallada del aula}
+
+Al hacer clic en una tarjeta se accede a la vista detallada que muestra:
+
+\begin{itemize}
+    \item \textbf{Micr\'ofonos distribuidos}: Mapa 2$\times$3 con la posici\'on real de cada micro. C\'irculos coloreados con el valor dB. Los micros offline aparecen en gris.
+    \item \textbf{Micr\'ofono central} (si existe \texttt{mic\_central}): C\'irculo grande con gradiente, comparativa entre media de los distribuidos y el central, diferencia.
+    \item Tarjetas de estad\'isticas: media, pico m\'aximo, conteo de micros online.
+    \item Navegaci\'on breadcrumb.
+\end{itemize}
+
+\subsection{Vista detallada del micr\'ofono}
+
+Al hacer clic en un micr\'ofono individual:
+
+\begin{itemize}
+    \item Valor dB grande con fondo coloreado.
+    \item Gr\'afica hist\'orica (Recharts) con \'area para dB, l\'inea para pico, y l\'ineas de referencia a 50 y 70 dB.
+    \item Estad\'isticas: media, m\'aximo, m\'inimo del periodo.
+\end{itemize}
+
+\section{Hook useNoiseData}
+
+El hook centraliza toda la gesti\'on de estado y comunicaci\'on:
+
+\begin{lstlisting}[language=Java, caption={Interfaz del estado (useNoiseData.ts)}]
+interface NoiseDataState {
+    rooms: Map<string, RoomSummary>;
+    connected: boolean;
+    view: "dashboard" | "room" | "mic";
+    selectedRoom: string | null;
+    selectedMic: string | null;
+    history: HistoryReading[];
+    loading: boolean;
+}
+\end{lstlisting}
+
+\textbf{Funciones expuestas:}
+\begin{itemize}
+    \item \texttt{selectRoom(id)}: Navega a la vista del aula.
+    \item \texttt{selectMic(room, mic)}: Carga hist\'orico y navega a vista del micro.
+    \item \texttt{goBack()}: Navega hacia atr\'as en la jerarqu\'ia.
+    \item \texttt{getSparkline(room)}: Devuelve array de \'ultimos 30 valores dB.
+\end{itemize}
+
+\section{Estilos y colores}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llll}
+\toprule
+\textbf{Nivel} & \textbf{Rango} & \textbf{Color} & \textbf{C\'odigo} \\
+\midrule
+Bajo & $< 50$ dBA & \textcolor{dbgreen}{Verde} & \texttt{\#22c55e} \\
+Medio & $50-70$ dBA & \textcolor{dbyellow}{Amarillo} & \texttt{\#eab308} \\
+Alto & $> 70$ dBA & \textcolor{dbred}{Rojo} & \texttt{\#ef4444} \\
+\bottomrule
+\end{tabular}
+\caption{Escala de colores seg\'un nivel de ruido}
+\end{table}
+
+\section{Dependencias}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Paquete} & \textbf{Versi\'on} \\
+\midrule
+next & 15.1.0 \\
+react & 19.0.0 \\
+recharts & 2.15.0 \\
+tailwindcss & 3.4.16 \\
+typescript & 5.7.2 \\
+\bottomrule
+\end{tabular}
+\caption{Dependencias del frontend}
+\end{table}
+
+% ============================================================
+% CAPITULO 7: Simulador
+% ============================================================
+\chapter{Simulador}
+
+\section{Descripci\'on}
+
+El simulador genera datos de ruido realistas sin necesidad de hardware f\'isico. \'Util para:
+
+\begin{itemize}
+    \item Demostraciones y presentaciones.
+    \item Desarrollo y pruebas del frontend/backend.
+    \item Validaci\'on de la cadena completa de datos.
+\end{itemize}
+
+\section{Escenarios realistas}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lccX}
+\toprule
+\textbf{Escenario} & \textbf{dB base} & \textbf{$\pm$ dB} & \textbf{Descripci\'on} \\
+\midrule
+Clase tranquila & 35 & 8 & Explicaci\'on en voz baja \\
+Explicaci\'on profesor & 50 & 10 & Clase magistral normal \\
+Trabajo en grupo & 58 & 12 & Actividad colaborativa \\
+Debate activo & 65 & 10 & Participaci\'on alta \\
+Recreo & 72 & 15 & Hora de descanso \\
+Examen & 28 & 5 & Silencio m\'aximo \\
+Aula vac\'ia & 20 & 3 & Sin ocupantes \\
+\bottomrule
+\end{tabularx}
+\caption{Escenarios de simulaci\'on}
+\end{table}
+
+\section{Uso}
+
+\begin{lstlisting}[language=bash, caption={Ejecuci\'on del simulador}]
+# Por defecto: 6 aulas, intervalo 2s
+node simulate.js
+
+# 12 aulas con intervalo de 1 segundo
+node simulate.js --rooms 12 --interval 1000
+
+# Broker personalizado
+node simulate.js --broker mqtt://192.168.1.50
+\end{lstlisting}
+
+El simulador incluye 20 nombres de aulas predefinidos (aula\_101 a aula\_208, laboratorios, biblioteca, gimnasio, etc.) y genera transiciones suaves entre escenarios con picos aleatorios y decaimiento exponencial.
+
+% ============================================================
+% CAPITULO 8: Despliegue
+% ============================================================
+\chapter{Despliegue}
+
+\section{Requisitos previos}
+
+\begin{itemize}
+    \item \textbf{Node.js} $\geq$ 18 (recomendado 20 LTS o 22).
+    \item \textbf{Python} $\geq$ 3.8 con \texttt{platformio} y \texttt{pyserial} (solo para flasheo).
+    \item \textbf{Docker} (opcional, solo si se usa Mosquitto externo).
+\end{itemize}
+
+\section{Escenario 1: Producci\'on con hardware real}
+
+\subsection{Paso 1: Flashear los micr\'ofonos}
+
+\begin{lstlisting}[language=bash]
+cd firmware
+pip install platformio pyserial
+python flash.py mic_01  # Repetir para mic_02..06
+\end{lstlisting}
+
+\subsection{Paso 2: Arrancar el servidor}
+
+\textbf{Windows:}
+\begin{lstlisting}[language=bash]
+start.bat
+\end{lstlisting}
+
+\textbf{Linux/Mac:}
+\begin{lstlisting}[language=bash]
+chmod +x start.sh && ./start.sh
+\end{lstlisting}
+
+Esto arranca:
+\begin{enumerate}
+    \item Backend con broker MQTT integrado (puertos 1883, 3001, 3002).
+    \item Frontend en modo desarrollo (puerto 3000).
+\end{enumerate}
+
+\subsection{Paso 3: Acceder al dashboard}
+
+\begin{itemize}
+    \item Dashboard: \url{http://localhost:3000}
+    \item API: \url{http://localhost:3001/api/rooms}
+    \item MQTT: \texttt{localhost:1883}
+\end{itemize}
+
+\section{Escenario 2: Demo sin hardware}
+
+\begin{lstlisting}[language=bash]
+# Windows
+scripts\demo.bat
+
+# Linux/Mac
+./scripts/demo.sh
+\end{lstlisting}
+
+Arranca el simulador en lugar de esperar datos de micr\'ofonos reales.
+
+\section{Escenario 3: Docker}
+
+\begin{lstlisting}[language=bash]
+docker compose up -d    # Mosquitto + Backend
+cd frontend && npm run dev  # Frontend aparte
+\end{lstlisting}
+
+\section{Puertos utilizados}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Puerto} & \textbf{Servicio} & \textbf{Protocolo} \\
+\midrule
+1883 & Broker MQTT & TCP \\
+3000 & Frontend (Next.js) & HTTP \\
+3001 & Backend API (Express) & HTTP \\
+3002 & WebSocket & WS \\
+9001 & MQTT WebSocket (Mosquitto) & WS \\
+\bottomrule
+\end{tabular}
+\caption{Puertos del sistema}
+\end{table}
+
+% ============================================================
+% CAPITULO 9: Flujo de datos
+% ============================================================
+\chapter{Flujo de datos}
+
+\section{Camino en tiempo real}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm,
+    box/.style={draw, rounded corners, minimum height=1cm, minimum width=3.5cm, align=center, fill=#1!15, font=\small},
+    arrow/.style={-{Stealth[length=3mm]}, thick},
+    label/.style={font=\scriptsize, midway, above},
+]
+    \node[box=blue] (mic) {ATOM Echo\\Captura + Filtro A};
+    \node[box=orange, below=of mic] (mqtt) {Broker MQTT};
+    \node[box=green, below=of mqtt] (backend) {Backend\\Calibraci\'on + SQLite};
+    \node[box=green, right=3cm of backend] (ws) {WebSocket\\Server};
+    \node[box=purple, below=of ws] (frontend) {Frontend\\Dashboard};
+
+    \draw[arrow] (mic) -- node[right, font=\scriptsize] {WiFi / JSON} (mqtt);
+    \draw[arrow] (mqtt) -- node[right, font=\scriptsize] {Subscribe} (backend);
+    \draw[arrow] (backend) -- node[above, font=\scriptsize] {Broadcast} (ws);
+    \draw[arrow] (ws) -- node[right, font=\scriptsize] {room\_update} (frontend);
+\end{tikzpicture}
+\caption{Flujo de datos en tiempo real}
+\end{figure}
+
+\section{Camino hist\'orico}
+
+Cuando el usuario hace clic en un micr\'ofono para ver su hist\'orico:
+
+\begin{enumerate}
+    \item El frontend llama a \texttt{GET /api/rooms/:id/mics/:micId/history}.
+    \item El backend consulta SQLite con el rango temporal.
+    \item Devuelve array de lecturas con timestamps.
+    \item El componente \texttt{NoiseChart} renderiza la gr\'afica.
+\end{enumerate}
+
+\section{Fallback por polling}
+
+Si la conexi\'on WebSocket se pierde, el hook \texttt{useNoiseData} activa un polling REST cada 5 segundos a \texttt{/api/rooms} hasta que el WebSocket se reconecta (reintento autom\'atico cada 3 segundos).
+
+% ============================================================
+% CAPITULO 10: Estructura de ficheros
+% ============================================================
+\chapter{Estructura de ficheros}
+
+\begin{lstlisting}[caption={\'Arbol completo del proyecto}, basicstyle=\ttfamily\scriptsize]
+microfonoAula/
+|-- firmware/                      # ATOM Echo S3R
+|   |-- src/
+|   |   |-- config.h              # Configuracion WiFi/MQTT/IDs
+|   |   |-- dsp.h                 # Filtro A-weighting IIR
+|   |   +-- main.cpp              # Logica principal
+|   |-- platformio.ini            # Build config
+|   +-- flash.py                  # Herramienta de flasheo
+|
+|-- firmware_core2/                # M5Stack Core2
+|   |-- src/
+|   |   |-- config.h
+|   |   |-- dsp.h
+|   |   +-- main.cpp              # Con LCD display
+|   |-- platformio.ini
+|   +-- flash_core2.py
+|
+|-- backend/                       # Servidor Node.js
+|   |-- src/
+|   |   |-- index.js              # API + WS + MQTT + SQLite
+|   |   +-- broker.js             # Broker MQTT integrado
+|   |-- package.json
+|   |-- .env.example
+|   +-- Dockerfile
+|
+|-- frontend/                      # Dashboard Next.js
+|   |-- src/
+|   |   |-- app/
+|   |   |   |-- page.tsx          # Dashboard principal
+|   |   |   |-- layout.tsx        # Cabecera
+|   |   |   +-- globals.css       # Estilos globales
+|   |   |-- components/
+|   |   |   |-- RoomCard.tsx
+|   |   |   |-- RoomDetailView.tsx
+|   |   |   |-- MicDetailView.tsx
+|   |   |   +-- NoiseChart.tsx
+|   |   +-- lib/
+|   |       +-- useNoiseData.ts   # Hook principal
+|   |-- package.json
+|   |-- next.config.ts
+|   +-- tailwind.config.ts
+|
+|-- simulator/                     # Simulador sin hardware
+|   |-- simulate.js
+|   +-- package.json
+|
+|-- scripts/                       # Scripts de automatizacion
+|   |-- demo.bat / demo.sh
+|   |-- run_backend.bat
+|   +-- run_frontend.bat
+|
+|-- start.bat / start.sh          # Arranque produccion
+|-- setup.bat                      # Instalacion
+|-- docker-compose.yml            # Docker (Mosquitto)
+|-- mosquitto.conf                # Config Mosquitto
+|-- requirements.txt              # Python deps
+|-- README.md                      # Guia rapida
++-- DESPLIEGUE.md                 # Guia de despliegue
+\end{lstlisting}
+
+% ============================================================
+% CAPITULO 11: Resumen de decisiones tecnicas
+% ============================================================
+\chapter{Decisiones t\'ecnicas}
+
+\section{Mediana vs. media aritm\'etica}
+
+Se utiliza la \textbf{mediana} para agregar los valores de los micr\'ofonos de un aula en lugar de la media aritm\'etica. Raz\'on: el micr\'ofono central, por su posici\'on m\'as cercana al profesor, registra sistem\'aticamente valores superiores (4--10 dB seg\'un el nivel de actividad). La mediana es robusta frente a estos outliers posicionales.
+
+\section{A-weighting vs. ponderaci\'on plana}
+
+Se implementa ponderaci\'on A (dBA) porque:
+\begin{itemize}
+    \item Es el est\'andar internacional para medici\'on de ruido ambiental (IEC~61672).
+    \item Refleja la percepci\'on real del o\'ido humano.
+    \item Aten\'ua el ruido de baja frecuencia (ventilaci\'on, tr\'afico) que no molesta tanto.
+\end{itemize}
+
+\section{Media de 5 segundos}
+
+En lugar de enviar lecturas instant\'aneas, se acumula durante 5 segundos:
+\begin{itemize}
+    \item Reduce el tr\'afico MQTT ($\sim$12 mensajes/minuto por micro vs.\ $\sim$900 instant\'aneos).
+    \item Suaviza fluctuaciones r\'apidas que no son representativas.
+    \item El pico se preserva por separado para no perder eventos puntuales.
+\end{itemize}
+
+\section{WebSocket + REST fallback}
+
+Se usa WebSocket como canal primario por su baja latencia, con fallback autom\'atico a polling REST. Esto garantiza que el dashboard funcione incluso en redes que bloquean WebSocket.
+
+\section{SQLite vs. bases de datos externas}
+
+Se eligi\'o SQLite por:
+\begin{itemize}
+    \item Cero configuraci\'on (fichero local).
+    \item Rendimiento excelente para un solo servidor.
+    \item Modo WAL para lecturas concurrentes.
+    \item Portabilidad (la base de datos es un \'unico fichero \texttt{.db}).
+\end{itemize}
+
+\section{Broker MQTT integrado}
+
+Se incluye Aedes como broker opcional para eliminar la dependencia de Docker/Mosquitto en despliegues simples. El backend puede actuar como broker y cliente MQTT simult\'aneamente.
+
+\section{Calibraci\'on dual}
+
+Se implementan dos niveles de calibraci\'on:
+\begin{enumerate}
+    \item \textbf{Firmware} (\texttt{DB\_OFFSET}): Compensaci\'on est\'atica por hardware. Requiere reflashear.
+    \item \textbf{Backend} (\texttt{MIC\_CALIBRATION}): Compensaci\'on din\'amica por posici\'on. Ajuste inmediato sin tocar el hardware.
+\end{enumerate}
+
+% ============================================================
+% Apendice
+% ============================================================
+\appendix
+
+\chapter{Referencia r\'apida de comandos}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Comando} & \textbf{Descripci\'on} \\
+\midrule
+\texttt{start.bat} & Arrancar backend + frontend (Windows) \\
+\texttt{./start.sh} & Arrancar backend + frontend (Linux/Mac) \\
+\texttt{scripts/demo.bat} & Demo con simulador (Windows) \\
+\texttt{python flash.py mic\_01} & Flashear un micr\'ofono \\
+\texttt{python flash.py --all} & Flashear todos los micros \\
+\texttt{python flash.py --list} & Listar puertos COM \\
+\texttt{node simulate.js} & Iniciar simulador (6 aulas) \\
+\texttt{docker compose up -d} & Arrancar con Docker \\
+\texttt{npm run dev} & Frontend en modo desarrollo \\
+\texttt{npm run build} & Compilar frontend para producci\'on \\
+\bottomrule
+\end{tabularx}
+\caption{Referencia r\'apida de comandos}
+\end{table}
+
+\chapter{Glosario}
+
+\begin{description}[style=nextline]
+    \item[dBA] Decibelios con ponderaci\'on A. Unidad de medida de nivel sonoro que tiene en cuenta la sensibilidad del o\'ido humano a distintas frecuencias.
+    \item[A-weighting] Curva de ponderaci\'on frecuencial definida en IEC~61672 que modela la respuesta del o\'ido humano.
+    \item[Biquad] Filtro digital IIR de segundo orden. Bloque b\'asico para construir filtros m\'as complejos.
+    \item[RMS] Root Mean Square (valor eficaz). Medida de la amplitud de una se\~nal.
+    \item[MQTT] Message Queuing Telemetry Transport. Protocolo de mensajer\'ia ligero para IoT.
+    \item[I2S] Inter-IC Sound. Protocolo de comunicaci\'on serie para audio digital.
+    \item[PDM] Pulse Density Modulation. T\'ecnica de modulaci\'on usada por micr\'ofonos MEMS.
+    \item[WAL] Write-Ahead Logging. Modo de SQLite que permite lecturas concurrentes durante escrituras.
+    \item[SPL] Sound Pressure Level. Nivel de presi\'on sonora medido en decibelios.
+    \item[MEMS] Micro-Electro-Mechanical Systems. Tecnolog\'ia de fabricaci\'on de micr\'ofonos miniaturizados.
+    \item[EAP-PEAP] Protected Extensible Authentication Protocol. M\'etodo de autenticaci\'on para WPA2-Enterprise.
+\end{description}
+
+\end{document}
