@@ -21,29 +21,28 @@
 // Identificacion del aula y microfono
 // ============================================
 #define ROOM_ID "aula_01"
-#define MIC_ID "mic_06"
+#define MIC_ID "mic_central"
 
 // ============================================
 // Parametros de medicion
 // ============================================
 #define SEND_INTERVAL_MS 5000       // Intervalo de envio MQTT (ms) - media de 5s
 #define SAMPLE_RATE 16000           // Frecuencia de muestreo (Hz)
-#define SAMPLES_PER_READ 1024      // Muestras por lectura I2S
+#define SAMPLES_PER_READ 1024      // Muestras por lectura
 #define DB_REFERENCE 94.0          // Referencia dB SPL para calibracion
 #define DB_OFFSET 0.0              // Offset de calibracion (ajustar segun microfono)
-
-// ============================================
-// Pines I2S - M5Stack ATOM Echo S3R
-// ============================================
-#define I2S_LRCK_PIN 3    // GPIO3
-#define I2S_SCLK_PIN 17   // GPIO17
-#define I2S_MCLK_PIN 11   // GPIO11
-#define I2S_DSDIN_PIN 48  // GPIO48
 
 // ============================================
 // Umbrales de ruido (dB)
 // ============================================
 #define THRESHOLD_LOW 50.0    // Por debajo: verde (tranquilo)
 #define THRESHOLD_HIGH 70.0   // Por encima: rojo (ruidoso)
+
+// ============================================
+// Pantalla LCD
+// ============================================
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
+#define DISPLAY_UPDATE_MS 500  // Actualizar pantalla cada 500ms
 
 #endif // CONFIG_H

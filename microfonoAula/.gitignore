@@ -44,6 +44,11 @@ firmware/.vscode/
 firmware/lib/
 firmware/test/
 firmware/include/
+firmware_core2/.pio/
+firmware_core2/.vscode/
+firmware_core2/lib/
+firmware_core2/test/
+firmware_core2/include/
 
 # Next.js
 frontend/.next/
@@ -53,6 +58,7 @@ frontend/node_modules/
 # Backend
 backend/node_modules/
 backend/*.db
+backend/data/
 
 # Varios
 *.log

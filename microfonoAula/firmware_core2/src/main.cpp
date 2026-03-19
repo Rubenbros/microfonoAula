@@ -1,10 +1,10 @@
 /**
  * Monitor de Ruido en Aulas
- * Firmware para M5Stack ATOM Echo S3R (ESP32-S3)
+ * Firmware para M5Stack Core2 v1.1 (ESP32)
  *
- * Lee audio del microfono integrado, aplica filtro A-weighting (dBA),
- * calcula nivel de ruido y envia la media de 5 segundos via MQTT.
- * El LED RGB indica el nivel.
+ * Lee audio del microfono SPM1423 (PDM), aplica filtro A-weighting (dBA),
+ * calcula nivel de ruido, muestra datos en la pantalla LCD y envia la
+ * media de 5 segundos via MQTT.
  */
 
 #include <Arduino.h>
@@ -46,6 +46,7 @@ float currentDbLevel = 0.0;
 float peakDbLevel = 0.0;
 unsigned long lastSendTime = 0;
 unsigned long lastPeakReset = 0;
+unsigned long lastDisplayUpdate = 0;
 
 // Acumulador para media de 5 segundos
 float dbAccumulator = 0.0;
@@ -67,6 +68,195 @@ unsigned long calStartTime = 0;
 // Topic MQTT
 char mqttTopic[128];
 
+// Estado de conexiones
+bool wifiConnected = false;
+bool mqttConnected = false;
+unsigned long lastMqttSendOk = 0;
+
+// ============================================
+// Colores para la pantalla
+// ============================================
+#define COLOR_BG       0x1082  // Gris oscuro
+#define COLOR_CARD_BG  0x2104  // Gris un poco mas claro
+#define COLOR_TEXT     0xFFFF  // Blanco
+#define COLOR_GRAY     0x8410  // Gris claro para textos secundarios
+#define COLOR_GREEN    0x07E0
+#define COLOR_YELLOW   0xFFE0
+#define COLOR_RED      0xF800
+#define COLOR_BLUE     0x001F
+#define COLOR_ORANGE   0xFD20
+
+// ============================================
+// Pantalla LCD - Interfaz principal
+// ============================================
+void drawStatusBar() {
+    M5.Lcd.fillRect(0, 0, SCREEN_WIDTH, 28, COLOR_CARD_BG);
+
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setTextDatum(TL_DATUM);
+    M5.Lcd.fillCircle(12, 14, 5, wifiConnected ? COLOR_GREEN : COLOR_RED);
+    M5.Lcd.setTextColor(COLOR_TEXT);
+    M5.Lcd.drawString("WiFi", 22, 8);
+
+    M5.Lcd.fillCircle(80, 14, 5, mqttConnected ? COLOR_GREEN : COLOR_RED);
+    M5.Lcd.drawString("MQTT", 90, 8);
+
+    // dBA indicator
+    M5.Lcd.setTextColor(COLOR_YELLOW);
+    M5.Lcd.drawString("dBA", 140, 8);
+
+    M5.Lcd.setTextDatum(TR_DATUM);
+    M5.Lcd.setTextColor(COLOR_GRAY);
+    char idStr[64];
+    snprintf(idStr, sizeof(idStr), "%s / %s", ROOM_ID, MIC_ID);
+    M5.Lcd.drawString(idStr, SCREEN_WIDTH - 8, 8);
+}
+
+void drawDbLevel(float db) {
+    uint16_t bgColor;
+    uint16_t textColor;
+    const char* label;
+
+    if (db < THRESHOLD_LOW) {
+        bgColor = COLOR_GREEN;
+        textColor = 0x0000;
+        label = "TRANQUILO";
+    } else if (db < THRESHOLD_HIGH) {
+        bgColor = COLOR_YELLOW;
+        textColor = 0x0000;
+        label = "MODERADO";
+    } else {
+        bgColor = COLOR_RED;
+        textColor = COLOR_TEXT;
+        label = "RUIDOSO";
+    }
+
+    int centerY = 95;
+    int boxH = 100;
+    M5.Lcd.fillRoundRect(20, centerY - boxH/2, SCREEN_WIDTH - 40, boxH, 12, bgColor);
+
+    M5.Lcd.setTextColor(textColor);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(4);
+
+    char dbStr[16];
+    snprintf(dbStr, sizeof(dbStr), "%.1f", db);
+    M5.Lcd.drawString(dbStr, SCREEN_WIDTH / 2, centerY - 12);
+
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.drawString("dBA", SCREEN_WIDTH / 2, centerY + 25);
+
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.drawString(label, SCREEN_WIDTH / 2, centerY + 42);
+}
+
+void drawCalibrationScreen() {
+    int centerY = 95;
+    int boxH = 100;
+    M5.Lcd.fillRoundRect(20, centerY - boxH/2, SCREEN_WIDTH - 40, boxH, 12, COLOR_BLUE);
+
+    M5.Lcd.setTextColor(COLOR_TEXT);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.drawString("CALIBRANDO", SCREEN_WIDTH / 2, centerY - 20);
+
+    int elapsed = (millis() - calStartTime) / 1000;
+    int remaining = (CAL_DURATION_MS / 1000) - elapsed;
+    char timeStr[16];
+    snprintf(timeStr, sizeof(timeStr), "%d s", remaining > 0 ? remaining : 0);
+    M5.Lcd.setTextSize(3);
+    M5.Lcd.drawString(timeStr, SCREEN_WIDTH / 2, centerY + 15);
+
+    if (calCount > 0) {
+        M5.Lcd.setTextSize(1);
+        char avgStr[32];
+        snprintf(avgStr, sizeof(avgStr), "Media: %.1f dBA", calAccumulator / calCount);
+        M5.Lcd.drawString(avgStr, SCREEN_WIDTH / 2, centerY + 42);
+    }
+}
+
+void drawStats(float peak) {
+    int statsY = 155;
+    M5.Lcd.fillRect(0, statsY, SCREEN_WIDTH, 50, COLOR_BG);
+
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextColor(COLOR_GRAY);
+    M5.Lcd.drawString("Pico", SCREEN_WIDTH / 4, statsY + 8);
+
+    uint16_t peakColor = peak < THRESHOLD_LOW ? COLOR_GREEN :
+                         peak < THRESHOLD_HIGH ? COLOR_YELLOW : COLOR_RED;
+    M5.Lcd.setTextColor(peakColor);
+    char peakStr[16];
+    snprintf(peakStr, sizeof(peakStr), "%.1f", peak);
+    M5.Lcd.drawString(peakStr, SCREEN_WIDTH / 4, statsY + 30);
+
+    M5.Lcd.setTextColor(COLOR_GRAY);
+    M5.Lcd.drawString("WiFi", 3 * SCREEN_WIDTH / 4, statsY + 8);
+
+    int rssi = WiFi.RSSI();
+    uint16_t rssiColor = rssi > -50 ? COLOR_GREEN :
+                         rssi > -70 ? COLOR_YELLOW : COLOR_RED;
+    M5.Lcd.setTextColor(rssiColor);
+    char rssiStr[16];
+    snprintf(rssiStr, sizeof(rssiStr), "%d", rssi);
+    M5.Lcd.drawString(rssiStr, 3 * SCREEN_WIDTH / 4, statsY + 30);
+}
+
+void drawBottomBar() {
+    int barY = SCREEN_HEIGHT - 28;
+    M5.Lcd.fillRect(0, barY, SCREEN_WIDTH, 28, COLOR_CARD_BG);
+
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextColor(COLOR_GRAY);
+
+    char info[64];
+    unsigned long uptime = millis() / 1000;
+    int mins = uptime / 60;
+    int secs = uptime % 60;
+    snprintf(info, sizeof(info), "Uptime: %dm %ds  |  A-weighting ON", mins, secs);
+    M5.Lcd.drawString(info, SCREEN_WIDTH / 2, barY + 14);
+}
+
+void drawInitScreen(const char* status) {
+    M5.Lcd.fillScreen(COLOR_BG);
+    M5.Lcd.setTextColor(COLOR_TEXT);
+    M5.Lcd.setTextDatum(MC_DATUM);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.drawString("Monitor Ruido", SCREEN_WIDTH / 2, 60);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setTextColor(COLOR_GRAY);
+    M5.Lcd.drawString("M5Stack Core2 (dBA)", SCREEN_WIDTH / 2, 90);
+
+    char idStr[64];
+    snprintf(idStr, sizeof(idStr), "%s / %s", ROOM_ID, MIC_ID);
+    M5.Lcd.drawString(idStr, SCREEN_WIDTH / 2, 110);
+
+    M5.Lcd.setTextColor(COLOR_YELLOW);
+    M5.Lcd.drawString(status, SCREEN_WIDTH / 2, 160);
+}
+
+void updateDisplay() {
+    drawStatusBar();
+    if (calibrationMode) {
+        drawCalibrationScreen();
+    } else if (!warmupDone) {
+        int remaining = (WARMUP_MS - (millis() - startTime)) / 1000 + 1;
+        char warmupStr[32];
+        snprintf(warmupStr, sizeof(warmupStr), "Warmup... %ds", remaining);
+        drawDbLevel(0);
+        M5.Lcd.setTextColor(COLOR_YELLOW);
+        M5.Lcd.setTextDatum(MC_DATUM);
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.drawString(warmupStr, SCREEN_WIDTH / 2, 150);
+    } else {
+        drawDbLevel(currentDbLevel);
+    }
+    drawStats(peakDbLevel);
+    drawBottomBar();
+}
+
 // ============================================
 // Configuracion microfono via M5Unified
 // ============================================
@@ -78,7 +268,7 @@ void setupMic() {
     M5.Mic.config(mic_cfg);
 
     if (M5.Mic.begin()) {
-        Serial.println("[MIC] Microfono configurado correctamente via M5Unified");
+        Serial.println("[MIC] Microfono SPM1423 configurado via M5Unified");
     } else {
         Serial.println("[ERROR] No se pudo iniciar el microfono");
     }
@@ -87,30 +277,12 @@ void setupMic() {
 // ============================================
 // Conexion WiFi
 // ============================================
-void scanNetworks() {
-    Serial.println("[WiFi] Escaneando redes...");
-    int n = WiFi.scanNetworks();
-    if (n == 0) {
-        Serial.println("[WiFi] No se encontraron redes");
-    } else {
-        for (int i = 0; i < n; i++) {
-            Serial.printf("  %d: %s (RSSI: %d, Ch: %d, %s)\n",
-                i + 1, WiFi.SSID(i).c_str(), WiFi.RSSI(i),
-                WiFi.channel(i),
-                WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "Abierta" : "Protegida");
-        }
-    }
-    WiFi.scanDelete();
-}
-
 void setupWiFi() {
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect(true, true);  // disconnect + borrar credenciales guardadas
-    delay(1000);
+    drawInitScreen("Conectando WiFi...");
 
-    // Escanear redes para diagnostico
-    scanNetworks();
-    delay(500);
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect(true, true);
+    delay(1000);
 
     #if WIFI_ENTERPRISE
         Serial.printf("[WiFi] Conectando a %s (WPA2-Enterprise, user: %s)\n", WIFI_SSID, WIFI_USER);
@@ -121,7 +293,6 @@ void setupWiFi() {
         WiFi.begin(WIFI_SSID);
     #else
         Serial.printf("[WiFi] Conectando a %s (WPA2-Personal)\n", WIFI_SSID);
-        Serial.printf("[WiFi] Password: %s\n", WIFI_PASSWORD);
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     #endif
 
@@ -131,31 +302,37 @@ void setupWiFi() {
         Serial.printf(".");
         intentos++;
 
-        if (intentos % 10 == 0) {
-            Serial.printf(" (estado: %d, intento %d/90)\n", WiFi.status(), intentos);
-            // Reintentar conexion cada 30 intentos
-            if (intentos % 30 == 0 && WiFi.status() != WL_CONNECTED) {
-                Serial.println("[WiFi] Reintentando conexion...");
-                WiFi.disconnect(true, true);
-                delay(1000);
-                #if WIFI_ENTERPRISE
-                    esp_eap_client_set_identity((uint8_t *)WIFI_USER, strlen(WIFI_USER));
-                    esp_eap_client_set_username((uint8_t *)WIFI_USER, strlen(WIFI_USER));
-                    esp_eap_client_set_password((uint8_t *)WIFI_PASSWORD, strlen(WIFI_PASSWORD));
-                    esp_eap_client_enable();
-                    WiFi.begin(WIFI_SSID);
-                #else
-                    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-                #endif
-            }
+        if (intentos % 5 == 0) {
+            char status[64];
+            snprintf(status, sizeof(status), "WiFi... intento %d/90", intentos);
+            drawInitScreen(status);
+        }
+
+        if (intentos % 30 == 0 && WiFi.status() != WL_CONNECTED) {
+            Serial.println("[WiFi] Reintentando conexion...");
+            WiFi.disconnect(true, true);
+            delay(1000);
+            #if WIFI_ENTERPRISE
+                esp_eap_client_set_identity((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+                esp_eap_client_set_username((uint8_t *)WIFI_USER, strlen(WIFI_USER));
+                esp_eap_client_set_password((uint8_t *)WIFI_PASSWORD, strlen(WIFI_PASSWORD));
+                esp_eap_client_enable();
+                WiFi.begin(WIFI_SSID);
+            #else
+                WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+            #endif
         }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
+        wifiConnected = true;
         Serial.printf("\n[WiFi] Conectado! IP: %s  RSSI: %d dBm\n",
             WiFi.localIP().toString().c_str(), WiFi.RSSI());
+        drawInitScreen("WiFi conectado!");
+        delay(500);
     } else {
         Serial.printf("\n[WiFi] Error de conexion (estado: %d). Reiniciando en 5s...\n", WiFi.status());
+        drawInitScreen("Error WiFi! Reiniciando...");
         delay(5000);
         ESP.restart();
     }
@@ -174,7 +351,7 @@ void reconnectMQTT() {
     while (!mqttClient.connected()) {
         Serial.print("[MQTT] Conectando al broker...");
 
-        String clientId = "atom-echo-";
+        String clientId = "core2-";
         clientId += String(ROOM_ID);
         clientId += "-";
         clientId += String(MIC_ID);
@@ -187,8 +364,10 @@ void reconnectMQTT() {
         }
 
         if (connected) {
+            mqttConnected = true;
             Serial.println(" conectado!");
         } else {
+            mqttConnected = false;
             Serial.printf(" fallo (rc=%d). Reintentando en 5s...\n", mqttClient.state());
             delay(5000);
         }
@@ -208,24 +387,11 @@ float calculateRMS_AWeighted(int16_t* samples, size_t count) {
 }
 
 float rmsToDB(float rms) {
-    if (rms < 1.0) rms = 1.0; // Evitar log(0)
+    if (rms < 1.0) rms = 1.0;
     float db = 20.0 * log10(rms) + DB_OFFSET;
     if (db < 20.0) db = 20.0;
     if (db > 120.0) db = 120.0;
     return db;
-}
-
-// ============================================
-// LED de estado segun nivel de ruido
-// ============================================
-void updateLED(float db) {
-    if (db < THRESHOLD_LOW) {
-        M5.Lcd.clear(TFT_GREEN);
-    } else if (db < THRESHOLD_HIGH) {
-        M5.Lcd.clear(TFT_YELLOW);
-    } else {
-        M5.Lcd.clear(TFT_RED);
-    }
 }
 
 // ============================================
@@ -245,7 +411,7 @@ void readAudioLevel() {
         }
         warmupDone = true;
         aweight_reset(&awFilter);
-        Serial.println("[MIC] Warmup completado, mediciones activas");
+        Serial.println("[MIC] Warmup completado, mediciones dBA activas");
     }
 
     float rms = calculateRMS_AWeighted(sampleBuffer, SAMPLES_PER_READ);
@@ -268,6 +434,7 @@ void readAudioLevel() {
             Serial.printf("  DB_OFFSET = %.1f + (lectura_referencia - %.1f)\n", DB_OFFSET, calAvg);
             Serial.println("========================================\n");
             calibrationMode = false;
+            M5.Lcd.fillScreen(COLOR_BG);
         }
         return;
     }
@@ -314,6 +481,7 @@ void sendNoiseData() {
     serializeJson(doc, payload, sizeof(payload));
 
     if (mqttClient.publish(mqttTopic, payload)) {
+        lastMqttSendOk = millis();
         Serial.printf("[MQTT] Enviado: %s\n", payload);
     } else {
         Serial.println("[MQTT] Error al publicar");
@@ -330,8 +498,11 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
+    M5.Lcd.fillScreen(COLOR_BG);
+    M5.Lcd.setBrightness(80);
+
     Serial.println("========================================");
-    Serial.println("  Monitor de Ruido en Aulas (dBA)");
+    Serial.println("  Monitor de Ruido en Aulas - Core2 (dBA)");
     Serial.printf("  Aula: %s  Micro: %s\n", ROOM_ID, MIC_ID);
     Serial.println("  Filtro: A-weighting IIR 3-biquad");
     Serial.println("========================================");
@@ -339,12 +510,20 @@ void setup() {
     // Inicializar filtro A-weighting
     aweight_init(&awFilter);
 
+    drawInitScreen("Iniciando microfono...");
     setupMic();
+
     setupWiFi();
+
+    drawInitScreen("Conectando MQTT...");
     setupMQTT();
 
     startTime = millis();
-    M5.Lcd.clear(TFT_BLUE);
+
+    // Pantalla principal
+    M5.Lcd.fillScreen(COLOR_BG);
+    updateDisplay();
+
     Serial.printf("[SISTEMA] Iniciado. Warmup %d ms...\n", WARMUP_MS);
 }
 
@@ -356,23 +535,36 @@ void loop() {
 
     // Reconectar WiFi si se pierde
     if (WiFi.status() != WL_CONNECTED) {
+        wifiConnected = false;
         Serial.println("[WiFi] Conexion perdida. Reiniciando...");
         delay(1000);
         ESP.restart();
     }
+    wifiConnected = true;
 
     if (!mqttClient.connected()) {
+        mqttConnected = false;
         reconnectMQTT();
     }
+    mqttConnected = mqttClient.connected();
     mqttClient.loop();
 
     readAudioLevel();
-    updateLED(currentDbLevel);
 
     unsigned long now = millis();
+
+    // Enviar datos MQTT cada SEND_INTERVAL_MS
     if (now - lastSendTime >= SEND_INTERVAL_MS) {
         lastSendTime = now;
-        sendNoiseData();
+        if (!calibrationMode) {
+            sendNoiseData();
+        }
+    }
+
+    // Actualizar pantalla cada DISPLAY_UPDATE_MS
+    if (now - lastDisplayUpdate >= DISPLAY_UPDATE_MS) {
+        lastDisplayUpdate = now;
+        updateDisplay();
     }
 
     // Boton A: pulsacion corta = reset pico, pulsacion larga (>2s) = calibracion
@@ -387,6 +579,13 @@ void loop() {
         calStartTime = millis();
         Serial.println("\n[CAL] Modo calibracion iniciado (10 segundos)...");
         Serial.println("[CAL] Coloca un sonometro de referencia junto al micro");
-        M5.Lcd.clear(TFT_BLUE);
+    }
+
+    // Boton B: alternar brillo pantalla
+    if (M5.BtnB.wasPressed()) {
+        static int brightness = 80;
+        brightness = (brightness == 80) ? 40 : (brightness == 40) ? 10 : 80;
+        M5.Lcd.setBrightness(brightness);
+        Serial.printf("[BOTON] Brillo: %d\n", brightness);
     }
 }
