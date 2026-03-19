@@ -40,6 +40,29 @@ const DB_PATH = process.env.DB_PATH || "./data/noise.db";
 const MIC_OFFLINE_TIMEOUT = 15000;
 
 // ============================================
+// Calibracion por micro (offset en dB)
+// Positivo = el micro lee de mas, se le resta
+// Ejemplo: mic_central lee +7 dB de mas -> poner 7.0
+// ============================================
+const MIC_CALIBRATION = {
+    "mic_central": 7.0,
+};
+
+function applyCalibration(mic, dbValue) {
+    const offset = MIC_CALIBRATION[mic] || 0;
+    return Math.round((dbValue - offset) * 10) / 10;
+}
+
+function median(values) {
+    if (values.length === 0) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0
+        ? sorted[mid]
+        : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// ============================================
 // Base de datos SQLite
 // ============================================
 const dbDir = path.dirname(DB_PATH);
@@ -127,8 +150,8 @@ function getRoomSummary(room) {
     }));
 
     const onlineMics = micArray.filter(m => m.online);
-    const avgDb = onlineMics.length > 0
-        ? onlineMics.reduce((s, m) => s + m.db, 0) / onlineMics.length
+    const medianDb = onlineMics.length > 0
+        ? median(onlineMics.map(m => m.db))
         : 0;
     const maxPeak = onlineMics.length > 0
         ? Math.max(...onlineMics.map(m => m.peak))
@@ -136,7 +159,7 @@ function getRoomSummary(room) {
 
     return {
         room,
-        db: Math.round(avgDb * 10) / 10,
+        db: Math.round(medianDb * 10) / 10,
         peak: Math.round(maxPeak * 10) / 10,
         micCount: micArray.length,
         onlineCount: onlineMics.length,
@@ -242,8 +265,8 @@ mqttClient.on("message", (topic, message) => {
             return;
         }
 
-        const dbLevel = data.db;
-        const peak = data.peak || dbLevel;
+        const dbLevel = applyCalibration(mic, data.db);
+        const peak = applyCalibration(mic, data.peak || data.db);
 
         if (!room || dbLevel === undefined) {
             console.warn("[MQTT] Mensaje invalido:", data);
