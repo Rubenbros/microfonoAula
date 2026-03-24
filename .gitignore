@@ -1,46 +1,67 @@
-# Claude Code local files (personal settings, not shared)
-.claude/settings.local.json
-CLAUDE.local.md
-.claude.json
-
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# Secrets
-secrets/
-**/credentials*
-**/*secret*
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Dependencies
+# Dependencias
 node_modules/
-vendor/
-__pycache__/
-*.pyc
+.pnp
+.pnp.js
 
-# Build outputs
+# Build
+.next/
+out/
 dist/
 build/
-target/
-*.jar
-*.war
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Logs
-logs/
-*.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Test coverage
+# Sistema
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# PlatformIO
+firmware/.pio/
+firmware/.vscode/
+firmware/lib/
+firmware/test/
+firmware/include/
+firmware_core2/.pio/
+firmware_core2/.vscode/
+firmware_core2/lib/
+firmware_core2/test/
+firmware_core2/include/
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+
+# Backend
+backend/node_modules/
+backend/*.db
+backend/data/
+
+# Varios
+*.log
+*.tmp
+.cache/
 coverage/
-.nyc_output/

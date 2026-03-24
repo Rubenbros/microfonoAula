@@ -1,3 +1,0 @@
-# Herramientas para flashear firmware ESP32-S3
-platformio>=6.1.0
-pyserial>=3.5

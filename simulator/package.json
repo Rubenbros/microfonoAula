@@ -1,0 +1,14 @@
+{
+  "name": "monitor-ruido-simulator",
+  "version": "1.0.0",
+  "description": "Simulador de microfonos para el sistema de monitorizacion de ruido en aulas",
+  "main": "simulate.js",
+  "scripts": {
+    "start": "node simulate.js",
+    "demo": "node simulate.js --rooms 8 --interval 2000",
+    "stress": "node simulate.js --rooms 20 --interval 500"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.4"
+  }
+}
