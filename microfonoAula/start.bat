@@ -12,12 +12,18 @@ echo   Monitor de Ruido en Aulas - SERVER
 echo ========================================
 echo.
 
-set "PATH=C:\Users\Departamento\nodejs\node-v22.14.0-win-x64;%PATH%"
+REM ---- Buscar Node.js (local del proyecto o en PATH) ----
+set "NODE_LOCAL=%~dp0nodejs\node-v22.14.0-win-x64"
+if exist "%NODE_LOCAL%\node.exe" (
+    set "PATH=%NODE_LOCAL%;%PATH%"
+) else (
+    REM Fallback: ruta antigua hardcodeada
+    set "PATH=C:\Users\Departamento\nodejs\node-v22.14.0-win-x64;%PATH%"
+)
 
-REM ---- Verificar Node.js ----
 node --version >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Node.js no encontrado.
+    echo [ERROR] Node.js no encontrado. Ejecuta setup.bat primero.
     pause
     exit /b 1
 )
@@ -31,11 +37,25 @@ if not exist "%~dp0backend\node_modules" (
     echo [SETUP] Instalando dependencias del backend...
     cd /d "%~dp0backend"
     call npm install
+    cd /d "%~dp0"
 )
 if not exist "%~dp0frontend\node_modules" (
     echo [SETUP] Instalando dependencias del frontend...
     cd /d "%~dp0frontend"
     call npm install
+    cd /d "%~dp0"
+)
+
+REM ---- Verificar que node_modules existen ----
+if not exist "%~dp0backend\node_modules" (
+    echo [ERROR] No se instalaron las dependencias del backend.
+    pause
+    exit /b 1
+)
+if not exist "%~dp0frontend\node_modules" (
+    echo [ERROR] No se instalaron las dependencias del frontend.
+    pause
+    exit /b 1
 )
 
 REM ---- Arrancar ----
