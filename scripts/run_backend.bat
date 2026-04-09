@@ -7,9 +7,12 @@ if exist "%NODE_LOCAL%\node.exe" (
 ) else (
     set "PATH=C:\Users\Departamento\nodejs\node-v22.14.0-win-x64;%PATH%"
 )
-set "USE_INTERNAL_BROKER=true"
+REM Broker MQTT externo (mismo que el firmware)
+set "MQTT_BROKER=mqtt://broker.hivemq.com"
+set "MQTT_PORT=1883"
+set "USE_INTERNAL_BROKER=false"
 cd /d %~dp0..\backend
-echo Arrancando backend...
+echo Arrancando backend (MQTT: broker.hivemq.com)...
 node src\index.js
 if %ERRORLEVEL% NEQ 0 (
     echo.

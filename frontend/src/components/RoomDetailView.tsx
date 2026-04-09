@@ -6,6 +6,7 @@ interface RoomDetailViewProps {
     roomData: RoomSummary | null;
     onSelectMic: (micId: string) => void;
     onBack: () => void;
+    onSchedule?: () => void;
 }
 
 function formatRoomName(room: string): string {
@@ -88,7 +89,7 @@ function MicButton({ mic, onClick }: { mic: MicReading; onClick: () => void }) {
     );
 }
 
-export default function RoomDetailView({ roomData, onSelectMic, onBack }: RoomDetailViewProps) {
+export default function RoomDetailView({ roomData, onSelectMic, onBack, onSchedule }: RoomDetailViewProps) {
     if (!roomData) {
         return (
             <div className="text-center py-20 text-gray-500">
@@ -148,11 +149,24 @@ export default function RoomDetailView({ roomData, onSelectMic, onBack }: RoomDe
                             {hasCentral && " (incluye micro central)"}
                         </p>
                     </div>
-                    <div className="text-right">
-                        <div className={`text-4xl font-bold ${roomColor} db-pulse`}>
-                            {roomData.db.toFixed(1)} <span className="text-lg">dB</span>
+                    <div className="flex items-center gap-4">
+                        {onSchedule && (
+                            <button
+                                onClick={onSchedule}
+                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors text-sm font-medium"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Horario
+                            </button>
+                        )}
+                        <div className="text-right">
+                            <div className={`text-4xl font-bold ${roomColor} db-pulse`}>
+                                {roomData.db.toFixed(1)} <span className="text-lg">dB</span>
+                            </div>
+                            <div className={`text-sm ${roomColor}`}>{roomLevel}</div>
                         </div>
-                        <div className={`text-sm ${roomColor}`}>{roomLevel}</div>
                     </div>
                 </div>
             </div>

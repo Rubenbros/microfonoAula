@@ -33,7 +33,7 @@ export interface HistoryReading {
 }
 
 /** Vista actual del dashboard */
-type View = "dashboard" | "room" | "mic";
+type View = "dashboard" | "room" | "mic" | "schedule";
 
 /** Estado del hook */
 interface NoiseDataState {
@@ -64,7 +64,7 @@ export function useNoiseData() {
 
     const sparklineData = useRef<Map<string, number[]>>(new Map());
     const wsRef = useRef<WebSocket | null>(null);
-    const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
+    const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     // Conectar WebSocket
     const connect = useCallback(() => {
@@ -171,11 +171,25 @@ export function useNoiseData() {
         }
     }, []);
 
+    // Navegar a vista de horario
+    const selectSchedule = useCallback((roomId: string) => {
+        setState((prev) => ({
+            ...prev,
+            view: "schedule",
+            selectedRoom: roomId,
+            selectedMic: null,
+            history: [],
+        }));
+    }, []);
+
     // Volver atras
     const goBack = useCallback(() => {
         setState((prev) => {
             if (prev.view === "mic") {
                 return { ...prev, view: "room", selectedMic: null, history: [] };
+            }
+            if (prev.view === "schedule") {
+                return { ...prev, view: "room", history: [] };
             }
             return { ...prev, view: "dashboard", selectedRoom: null, selectedMic: null, history: [] };
         });
@@ -213,6 +227,7 @@ export function useNoiseData() {
         loading: state.loading,
         selectRoom,
         selectMic,
+        selectSchedule,
         goBack,
         getSparkline,
         getRoomData: (roomId: string) => state.rooms.get(roomId) || null,

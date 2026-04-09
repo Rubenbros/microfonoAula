@@ -138,9 +138,19 @@ def set_wifi_personal(ssid, password):
     print(f"  WiFi: {ssid} (WPA2-Personal)")
 
 
+def get_pio_cmd():
+    """Devuelve el comando para ejecutar PlatformIO (pio o python -m platformio)."""
+    try:
+        if subprocess.run(["pio", "--version"], capture_output=True).returncode == 0:
+            return ["pio"]
+    except FileNotFoundError:
+        pass
+    return [sys.executable, "-m", "platformio"]
+
+
 def flash(port=None):
     """Compila y flashea el firmware."""
-    cmd = ["pio", "run", "-t", "upload"]
+    cmd = get_pio_cmd() + ["run", "-t", "upload"]
     if port:
         cmd += ["--upload-port", port]
 

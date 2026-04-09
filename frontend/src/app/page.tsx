@@ -4,6 +4,7 @@ import { useNoiseData } from "@/lib/useNoiseData";
 import RoomCard from "@/components/RoomCard";
 import RoomDetailView from "@/components/RoomDetailView";
 import MicDetailView from "@/components/MicDetailView";
+import ScheduleView from "@/components/ScheduleView";
 
 export default function HomePage() {
     const {
@@ -16,10 +17,21 @@ export default function HomePage() {
         loading,
         selectRoom,
         selectMic,
+        selectSchedule,
         goBack,
         getSparkline,
         getRoomData,
     } = useNoiseData();
+
+    // Vista de horario por franjas
+    if (view === "schedule" && selectedRoom) {
+        return (
+            <ScheduleView
+                roomId={selectedRoom}
+                onBack={goBack}
+            />
+        );
+    }
 
     // Vista de detalle de microfono
     if (view === "mic" && selectedRoom && selectedMic) {
@@ -45,6 +57,7 @@ export default function HomePage() {
                 roomData={roomData}
                 onSelectMic={(micId) => selectMic(selectedRoom, micId)}
                 onBack={goBack}
+                onSchedule={() => selectSchedule(selectedRoom)}
             />
         );
     }

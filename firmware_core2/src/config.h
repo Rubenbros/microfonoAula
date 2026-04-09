@@ -5,7 +5,7 @@
 // Configuracion WiFi
 // ============================================
 #define WIFI_ENTERPRISE false  // true = WPA2-Enterprise EAP-PEAP, false = WPA2-Personal
-#define WIFI_SSID "IOT2"
+#define WIFI_SSID "IOT"
 #define WIFI_USER ""           // Solo para WPA2-Enterprise
 #define WIFI_PASSWORD "IOT_Enlaces_205"
 

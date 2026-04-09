@@ -84,13 +84,29 @@ if %errorlevel% neq 0 (
 )
 echo   Python OK
 
+REM Actualizar pip primero (evita fallos por pip antiguo)
+echo   Actualizando pip...
+python -m pip install --upgrade pip --quiet >nul 2>&1
+
 REM Instalar dependencias Python
-pip install -r "%PROJECT_DIR%requirements.txt" --quiet 2>nul
+echo   Instalando PlatformIO y pyserial...
+python -m pip install platformio pyserial
 if %errorlevel% neq 0 (
-    echo   AVISO: No se pudieron instalar dependencias Python.
-) else (
-    echo   PlatformIO + pyserial OK
+    echo.
+    echo   Reintentando con --user...
+    python -m pip install --user platformio pyserial
 )
+
+REM Verificar que pio existe
+python -m platformio --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo.
+    echo   ERROR: PlatformIO no se instalo correctamente.
+    echo   Prueba manualmente: python -m pip install platformio
+    pause
+    exit /b 1
+)
+echo   PlatformIO + pyserial OK
 :skip_python
 
 REM ============================================

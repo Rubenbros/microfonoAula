@@ -436,6 +436,153 @@ app.get("/api/stats", (req, res) => {
     }
 });
 
+// ============================================
+// GET /api/rooms/:id/schedule - Estadisticas por franjas horarias
+// ============================================
+const SCHEDULE_SLOTS = [
+    { id: "clase_1",  label: "1a Clase",  start: "08:30", end: "09:20", type: "class" },
+    { id: "clase_2",  label: "2a Clase",  start: "09:25", end: "10:15", type: "class" },
+    { id: "clase_3",  label: "3a Clase",  start: "10:20", end: "11:10", type: "class" },
+    { id: "recreo_1", label: "Recreo",    start: "11:10", end: "11:40", type: "break" },
+    { id: "clase_4",  label: "4a Clase",  start: "11:40", end: "12:30", type: "class" },
+    { id: "clase_5",  label: "5a Clase",  start: "12:35", end: "13:25", type: "class" },
+    { id: "clase_6",  label: "6a Clase",  start: "13:30", end: "14:20", type: "class" },
+    { id: "clase_7",  label: "7a Clase",  start: "15:30", end: "16:20", type: "class" },
+    { id: "clase_8",  label: "8a Clase",  start: "16:25", end: "17:15", type: "class" },
+    { id: "clase_9",  label: "9a Clase",  start: "17:20", end: "18:10", type: "class" },
+    { id: "recreo_2", label: "Recreo",    start: "18:10", end: "18:30", type: "break" },
+    { id: "clase_10", label: "10a Clase", start: "18:30", end: "19:20", type: "class" },
+    { id: "clase_11", label: "11a Clase", start: "19:25", end: "20:15", type: "class" },
+    { id: "clase_12", label: "12a Clase", start: "20:20", end: "21:10", type: "class" },
+];
+
+function timeToMinutes(timeStr) {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+}
+
+function getSlotTimestamps(slot, dateStr) {
+    // dateStr = "2026-03-24" or null for today
+    const base = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
+    if (!dateStr) {
+        base.setHours(0, 0, 0, 0);
+    }
+    const [sh, sm] = slot.start.split(":").map(Number);
+    const [eh, em] = slot.end.split(":").map(Number);
+    const startTs = Math.floor(new Date(base.getTime() + (sh * 60 + sm) * 60000).getTime() / 1000);
+    const endTs = Math.floor(new Date(base.getTime() + (eh * 60 + em) * 60000).getTime() / 1000);
+    return { startTs, endTs };
+}
+
+// Prepared statement for slot stats
+const getSlotStats = db.prepare(`
+    SELECT
+        COUNT(*) as readings,
+        ROUND(AVG(db_level), 1) as avg_db,
+        ROUND(MAX(db_level), 1) as max_db,
+        ROUND(MIN(db_level), 1) as min_db,
+        ROUND(MAX(peak_level), 1) as max_peak
+    FROM noise_readings
+    WHERE room = ? AND timestamp >= ? AND timestamp <= ?
+`);
+
+const getSlotPercentiles = db.prepare(`
+    SELECT db_level FROM noise_readings
+    WHERE room = ? AND timestamp >= ? AND timestamp <= ?
+    ORDER BY db_level ASC
+`);
+
+app.get("/api/rooms/:id/schedule", (req, res) => {
+    try {
+        const roomId = req.params.id;
+        const dateStr = req.query.date || null; // "2026-03-24" or today
+
+        const slots = SCHEDULE_SLOTS.map(slot => {
+            const { startTs, endTs } = getSlotTimestamps(slot, dateStr);
+            const stats = getSlotStats.get(roomId, startTs, endTs);
+
+            let p10 = null, p50 = null, p90 = null, stdDev = null;
+            if (stats && stats.readings > 0) {
+                const rows = getSlotPercentiles.all(roomId, startTs, endTs);
+                const values = rows.map(r => r.db_level);
+                const n = values.length;
+                p10 = values[Math.floor(n * 0.1)] || values[0];
+                p50 = values[Math.floor(n * 0.5)] || values[0];
+                p90 = values[Math.floor(n * 0.9)] || values[n - 1];
+
+                const mean = values.reduce((a, b) => a + b, 0) / n;
+                stdDev = Math.round(Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / n) * 10) / 10;
+            }
+
+            // Determine if slot is currently active
+            const now = Math.floor(Date.now() / 1000);
+            const active = now >= startTs && now <= endTs;
+
+            // Time above thresholds
+            let timeAbove70 = 0, timeAbove50 = 0;
+            if (stats && stats.readings > 0) {
+                const rows = getSlotPercentiles.all(roomId, startTs, endTs);
+                timeAbove70 = Math.round((rows.filter(r => r.db_level > 70).length / rows.length) * 100);
+                timeAbove50 = Math.round((rows.filter(r => r.db_level > 50).length / rows.length) * 100);
+            }
+
+            return {
+                ...slot,
+                startTs,
+                endTs,
+                active,
+                stats: stats && stats.readings > 0 ? {
+                    readings: stats.readings,
+                    avg: stats.avg_db,
+                    max: stats.max_db,
+                    min: stats.min_db,
+                    maxPeak: stats.max_peak,
+                    p10, p50, p90,
+                    stdDev,
+                    pctAbove50: timeAbove50,
+                    pctAbove70: timeAbove70,
+                } : null,
+            };
+        });
+
+        // Day-wide summary (only within schedule slots)
+        const allSlotStats = slots.filter(s => s.stats);
+        const dayAvg = allSlotStats.length > 0
+            ? Math.round(allSlotStats.reduce((s, sl) => s + sl.stats.avg * sl.stats.readings, 0)
+                / allSlotStats.reduce((s, sl) => s + sl.stats.readings, 0) * 10) / 10
+            : null;
+        const dayMax = allSlotStats.length > 0
+            ? Math.max(...allSlotStats.map(s => s.stats.max))
+            : null;
+        const dayMin = allSlotStats.length > 0
+            ? Math.min(...allSlotStats.map(s => s.stats.min))
+            : null;
+        const totalReadings = allSlotStats.reduce((s, sl) => s + sl.stats.readings, 0);
+
+        // Noisiest and quietest slot
+        const classSlots = allSlotStats.filter(s => s.type === "class");
+        const noisiest = classSlots.length > 0
+            ? classSlots.reduce((a, b) => a.stats.avg > b.stats.avg ? a : b).id
+            : null;
+        const quietest = classSlots.length > 0
+            ? classSlots.reduce((a, b) => a.stats.avg < b.stats.avg ? a : b).id
+            : null;
+
+        res.json({
+            room: roomId,
+            date: dateStr || new Date().toISOString().split("T")[0],
+            totalReadings,
+            daySummary: { avg: dayAvg, max: dayMax, min: dayMin },
+            noisiest,
+            quietest,
+            slots,
+        });
+    } catch (err) {
+        console.error("[API] Error en /api/rooms/:id/schedule:", err.message);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
 // Health check
 app.get("/api/health", (req, res) => {
     res.json({
