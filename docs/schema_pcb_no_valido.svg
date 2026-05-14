@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1180" font-family="Inter, Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+    </marker>
+    <style>
+      .grid          { stroke:#e2e8f0; stroke-width:0.5; }
+      .axisLabel     { fill:#64748b; font-size:11px; }
+      .axisLabelEm   { fill:#1e3a8a; font-size:11px; font-weight:700; }
+      .wirePwr       { stroke:#dc2626; stroke-width:2.4; fill:none; stroke-linecap:round; }
+      .wireGnd       { stroke:#0f172a; stroke-width:2.4; fill:none; stroke-linecap:round; }
+      .wireV5        { stroke:#f59e0b; stroke-width:2.4; fill:none; stroke-linecap:round; }
+      .wireSig       { stroke:#1e3a8a; stroke-width:2;   fill:none; stroke-linecap:round; }
+      .junction      { fill:#0f172a; }
+      .junctionPwr   { fill:#dc2626; }
+      .junctionV5    { fill:#b45309; }
+      .compBody      { fill:#ffffff; stroke:#1e3a8a; stroke-width:2; }
+      .compTitle     { fill:#0f172a; font-size:14px; font-weight:700; text-anchor:middle; }
+      .compSub       { fill:#475569; font-size:10px; text-anchor:middle; font-style:italic; }
+      .pinDot        { fill:#fbbf24; stroke:#92400e; stroke-width:1.2; }
+      .pinLabel      { fill:#0f172a; font-size:11px; font-weight:600; }
+      .pinNum        { fill:#92400e; font-size:9px; font-weight:700; text-anchor:middle; }
+      .padDot        { fill:#fde68a; stroke:#b45309; stroke-width:1; }
+      .padLabel      { fill:#92400e; font-size:10px; text-anchor:middle; font-weight:700; }
+      .gndLabel      { fill:#0f172a; font-size:14px; font-weight:700; text-anchor:middle; }
+      .powerLabel    { fill:#dc2626; font-size:14px; font-weight:700; text-anchor:middle; }
+      .v5Label       { fill:#b45309; font-size:12px; font-weight:700; text-anchor:middle; }
+      .fuseBox       { fill:#fef3c7; stroke:#b45309; stroke-width:1.8; }
+      .invalidRect   { fill:#fef2f2; stroke:#dc2626; stroke-width:3; stroke-dasharray:10 5; opacity:0.9; }
+      .invalidTag    { fill:#dc2626; }
+      .invalidTagText{ fill:#ffffff; font-size:13px; font-weight:700; text-anchor:middle; }
+      .title         { fill:#0f172a; font-size:20px; font-weight:700; }
+      .subtitle      { fill:#64748b; font-size:12px; font-style:italic; }
+      .netLabel      { font-size:10px; font-weight:700; }
+    </style>
+  </defs>
+
+  <!-- HEADER -->
+  <text class="title"    x="40" y="38">Schematic — perfboard layout (rejected revision)</text>
+  <text class="subtitle" x="40" y="58">Reconstruction of the hand-drawn sketch. Coordinates correspond to perfboard hole positions.</text>
+
+  <g transform="translate(80,100)">
+    <!-- background -->
+    <rect x="0" y="0" width="684" height="900" fill="#f8fafc"/>
+
+    <!-- GRID -->
+    <g>
+      <!-- vertical -->
+      <line class="grid" x1="0"   y1="0" x2="0"   y2="900"/>
+      <line class="grid" x1="36"  y1="0" x2="36"  y2="900"/>
+      <line class="grid" x1="72"  y1="0" x2="72"  y2="900"/>
+      <line class="grid" x1="108" y1="0" x2="108" y2="900"/>
+      <line class="grid" x1="144" y1="0" x2="144" y2="900"/>
+      <line class="grid" x1="180" y1="0" x2="180" y2="900"/>
+      <line class="grid" x1="216" y1="0" x2="216" y2="900"/>
+      <line class="grid" x1="252" y1="0" x2="252" y2="900"/>
+      <line class="grid" x1="288" y1="0" x2="288" y2="900"/>
+      <line class="grid" x1="324" y1="0" x2="324" y2="900"/>
+      <line class="grid" x1="360" y1="0" x2="360" y2="900"/>
+      <line class="grid" x1="396" y1="0" x2="396" y2="900"/>
+      <line class="grid" x1="432" y1="0" x2="432" y2="900"/>
+      <line class="grid" x1="468" y1="0" x2="468" y2="900"/>
+      <line class="grid" x1="504" y1="0" x2="504" y2="900"/>
+      <line class="grid" x1="540" y1="0" x2="540" y2="900"/>
+      <line class="grid" x1="576" y1="0" x2="576" y2="900"/>
+      <line class="grid" x1="612" y1="0" x2="612" y2="900"/>
+      <line class="grid" x1="648" y1="0" x2="648" y2="900"/>
+      <line class="grid" x1="684" y1="0" x2="684" y2="900"/>
+      <!-- horizontal -->
+      <line class="grid" x1="0" y1="0"   x2="684" y2="0"/>
+      <line class="grid" x1="0" y1="36"  x2="684" y2="36"/>
+      <line class="grid" x1="0" y1="72"  x2="684" y2="72"/>
+      <line class="grid" x1="0" y1="108" x2="684" y2="108"/>
+      <line class="grid" x1="0" y1="144" x2="684" y2="144"/>
+      <line class="grid" x1="0" y1="180" x2="684" y2="180"/>
+      <line class="grid" x1="0" y1="216" x2="684" y2="216"/>
+      <line class="grid" x1="0" y1="252" x2="684" y2="252"/>
+      <line class="grid" x1="0" y1="288" x2="684" y2="288"/>
+      <line class="grid" x1="0" y1="324" x2="684" y2="324"/>
+      <line class="grid" x1="0" y1="360" x2="684" y2="360"/>
+      <line class="grid" x1="0" y1="396" x2="684" y2="396"/>
+      <line class="grid" x1="0" y1="432" x2="684" y2="432"/>
+      <line class="grid" x1="0" y1="468" x2="684" y2="468"/>
+      <line class="grid" x1="0" y1="504" x2="684" y2="504"/>
+      <line class="grid" x1="0" y1="540" x2="684" y2="540"/>
+      <line class="grid" x1="0" y1="576" x2="684" y2="576"/>
+      <line class="grid" x1="0" y1="612" x2="684" y2="612"/>
+      <line class="grid" x1="0" y1="648" x2="684" y2="648"/>
+      <line class="grid" x1="0" y1="684" x2="684" y2="684"/>
+      <line class="grid" x1="0" y1="720" x2="684" y2="720"/>
+      <line class="grid" x1="0" y1="756" x2="684" y2="756"/>
+      <line class="grid" x1="0" y1="792" x2="684" y2="792"/>
+      <line class="grid" x1="0" y1="828" x2="684" y2="828"/>
+      <line class="grid" x1="0" y1="864" x2="684" y2="864"/>
+      <line class="grid" x1="0" y1="900" x2="684" y2="900"/>
+    </g>
+
+    <!-- COLUMN NUMBERS -->
+    <g>
+      <text class="axisLabel"   x="18"  y="-12" text-anchor="middle">1</text>
+      <text class="axisLabel"   x="54"  y="-12" text-anchor="middle">2</text>
+      <text class="axisLabel"   x="90"  y="-12" text-anchor="middle">3</text>
+      <text class="axisLabel"   x="126" y="-12" text-anchor="middle">4</text>
+      <text class="axisLabelEm" x="162" y="-12" text-anchor="middle">5</text>
+      <text class="axisLabel"   x="198" y="-12" text-anchor="middle">6</text>
+      <text class="axisLabel"   x="234" y="-12" text-anchor="middle">7</text>
+      <text class="axisLabel"   x="270" y="-12" text-anchor="middle">8</text>
+      <text class="axisLabel"   x="306" y="-12" text-anchor="middle">9</text>
+      <text class="axisLabelEm" x="342" y="-12" text-anchor="middle">10</text>
+      <text class="axisLabel"   x="378" y="-12" text-anchor="middle">11</text>
+      <text class="axisLabel"   x="414" y="-12" text-anchor="middle">12</text>
+      <text class="axisLabel"   x="450" y="-12" text-anchor="middle">13</text>
+      <text class="axisLabel"   x="486" y="-12" text-anchor="middle">14</text>
+      <text class="axisLabelEm" x="522" y="-12" text-anchor="middle">15</text>
+      <text class="axisLabel"   x="558" y="-12" text-anchor="middle">16</text>
+      <text class="axisLabel"   x="594" y="-12" text-anchor="middle">17</text>
+      <text class="axisLabel"   x="630" y="-12" text-anchor="middle">18</text>
+      <text class="axisLabel"   x="666" y="-12" text-anchor="middle">19</text>
+    </g>
+
+    <!-- ROW NUMBERS -->
+    <g>
+      <text class="axisLabel"   x="-14" y="22"  text-anchor="end">1</text>
+      <text class="axisLabel"   x="-14" y="58"  text-anchor="end">2</text>
+      <text class="axisLabel"   x="-14" y="94"  text-anchor="end">3</text>
+      <text class="axisLabel"   x="-14" y="130" text-anchor="end">4</text>
+      <text class="axisLabelEm" x="-14" y="166" text-anchor="end">5</text>
+      <text class="axisLabel"   x="-14" y="202" text-anchor="end">6</text>
+      <text class="axisLabel"   x="-14" y="238" text-anchor="end">7</text>
+      <text class="axisLabel"   x="-14" y="274" text-anchor="end">8</text>
+      <text class="axisLabel"   x="-14" y="310" text-anchor="end">9</text>
+      <text class="axisLabelEm" x="-14" y="346" text-anchor="end">10</text>
+      <text class="axisLabel"   x="-14" y="382" text-anchor="end">11</text>
+      <text class="axisLabel"   x="-14" y="418" text-anchor="end">12</text>
+      <text class="axisLabel"   x="-14" y="454" text-anchor="end">13</text>
+      <text class="axisLabel"   x="-14" y="490" text-anchor="end">14</text>
+      <text class="axisLabelEm" x="-14" y="526" text-anchor="end">15</text>
+      <text class="axisLabel"   x="-14" y="562" text-anchor="end">16</text>
+      <text class="axisLabel"   x="-14" y="598" text-anchor="end">17</text>
+      <text class="axisLabel"   x="-14" y="634" text-anchor="end">18</text>
+      <text class="axisLabel"   x="-14" y="670" text-anchor="end">19</text>
+      <text class="axisLabelEm" x="-14" y="706" text-anchor="end">20</text>
+      <text class="axisLabel"   x="-14" y="742" text-anchor="end">21</text>
+      <text class="axisLabel"   x="-14" y="778" text-anchor="end">22</text>
+      <text class="axisLabel"   x="-14" y="814" text-anchor="end">23</text>
+      <text class="axisLabel"   x="-14" y="850" text-anchor="end">24</text>
+      <text class="axisLabelEm" x="-14" y="886" text-anchor="end">25</text>
+    </g>
+
+    <!-- ============ POWER PADS ============ -->
+    <text class="gndLabel"   x="162" y="42">GND</text>
+    <circle class="padDot"   cx="162" cy="58" r="9"/>
+
+    <text class="powerLabel" x="522" y="42">+24 V</text>
+    <circle class="padDot"   cx="522" cy="58" r="9"/>
+
+    <!-- ============ GND NET (single continuous wire, NOT through the fuse) ============ -->
+    <!-- From GND pad straight down at col 5 to the TSR GND pin, then continues into invalid zone -->
+    <path class="wireGnd" d="M 162 67 L 162 800"/>
+    <!-- Branch from GND rail into TSR GND pin -->
+    <path class="wireGnd" d="M 162 324 L 207 324"/>
+    <circle class="junction" cx="162" cy="324" r="3.5"/>
+
+    <!-- ============ +24 V NET (through the inline fuse only) ============ -->
+    <!-- From +24V pad straight down at col 15 to row 8, with fuse symbol inline at row 4 -->
+    <path class="wirePwr" d="M 522 67 L 522 108"/>
+    <!-- inline fuse symbol -->
+    <rect class="fuseBox" x="498" y="108" width="48" height="36" rx="4"/>
+    <text class="netLabel" x="522" y="131" fill="#92400e" text-anchor="middle">FUSIBLE 1 A</text>
+    <!-- wire continues below the fuse to TSR Vin -->
+    <path class="wirePwr" d="M 522 144 L 522 324 L 478 324"/>
+
+    <!-- ============ TSR 1-2450 ============ -->
+    <rect class="compBody" x="216" y="252" width="252" height="144" rx="6"/>
+    <text class="compTitle" x="342" y="282">TSR 1-2450</text>
+    <text class="compSub"   x="342" y="300">24 V → 5 V step-down</text>
+
+    <!-- Pin 2: GND (left edge) -->
+    <circle class="pinDot" cx="216" cy="324" r="6"/>
+    <text class="pinNum"   x="240" y="318">2</text>
+    <text class="pinLabel" x="240" y="334">GND</text>
+
+    <!-- Pin 1: Vin (right edge) -->
+    <circle class="pinDot" cx="468" cy="324" r="6"/>
+    <text class="pinNum"   x="448" y="318" text-anchor="middle">1</text>
+    <text class="pinLabel" x="430" y="334" text-anchor="end">Vin</text>
+
+    <!-- Pin 3: Vout (bottom edge) -->
+    <circle class="pinDot" cx="342" cy="396" r="6"/>
+    <text class="pinNum"   x="342" y="378" text-anchor="middle">3</text>
+    <text class="pinLabel" x="342" y="368" text-anchor="middle">Vout</text>
+
+    <!-- ============ +5 V OUTPUT NET (from TSR Vout, down into invalid zone) ============ -->
+    <path class="wireV5" d="M 342 402 L 342 540"/>
+    <!-- net label tag near the wire -->
+    <rect x="360" y="430" width="48" height="22" rx="3" fill="#fef3c7" stroke="#b45309"/>
+    <text class="v5Label" x="384" y="446">+5 V</text>
+
+    <!-- ============ INVALID ZONE ============ -->
+    <rect class="invalidRect" x="72" y="468" width="540" height="396" rx="6"/>
+
+    <!-- NO VÁLIDO tag with arrow -->
+    <rect class="invalidTag" x="558" y="396" width="120" height="34" rx="6"/>
+    <text class="invalidTagText" x="618" y="418">NO VÁLIDO</text>
+    <path class="arrow" d="M 600 430 L 540 478" marker-end="url(#arrow)"/>
+
+    <!-- Horizontal +5V bus inside the invalid zone (at row 15, y=540) -->
+    <!-- Goes from CC1 pad column to CC2 pad column, with junction at the +5V wire from TSR -->
+    <path class="wireV5" d="M 234 540 L 522 540"/>
+    <circle class="junctionV5" cx="342" cy="540" r="3.5"/>
+
+    <!-- Direct +5V to VBUS pad -->
+    <path class="wireV5" d="M 234 540 L 234 670"/>
+    <circle class="junctionV5" cx="234" cy="540" r="3.5"/>
+
+    <!-- R1 on the line from +5V bus down to CC1 pad (col 11) -->
+    <path class="wireV5" d="M 378 540 L 378 576"/>
+    <circle class="junctionV5" cx="378" cy="540" r="3.5"/>
+    <rect class="compBody" x="358" y="576" width="40" height="60" rx="3"/>
+    <text class="compTitle" x="378" y="612" font-size="12">R1</text>
+    <path class="wireV5" d="M 378 636 L 378 670"/>
+
+    <!-- R2 on the line from +5V bus down to CC2 pad (col 15) -->
+    <path class="wireV5" d="M 522 540 L 522 576"/>
+    <rect class="compBody" x="502" y="576" width="40" height="60" rx="3"/>
+    <text class="compTitle" x="522" y="612" font-size="12">R2</text>
+    <path class="wireV5" d="M 522 636 L 522 670"/>
+
+    <!-- GND extends from the GND vertical rail into the invalid zone, ending at the GND pad of USB-C -->
+    <!-- Already drawn — GND wire goes from y=67 to y=800 at x=162 -->
+
+    <!-- ============ USB-C PADS (row 19) ============ -->
+    <!-- Order left → right: GND, VBUS, CC1, D+, D-, CC2 -->
+    <g>
+      <circle class="padDot" cx="162" cy="670" r="9"/>
+      <circle class="padDot" cx="234" cy="670" r="9"/>
+      <circle class="padDot" cx="378" cy="670" r="9"/>
+      <circle class="padDot" cx="450" cy="670" r="9"/>
+      <circle class="padDot" cx="486" cy="670" r="9"/>
+      <circle class="padDot" cx="522" cy="670" r="9"/>
+    </g>
+
+    <!-- Wires from pads down to USB-C breakout body (row 21) -->
+    <path class="wireGnd" d="M 162 679 L 162 720"/>
+    <path class="wireV5"  d="M 234 679 L 234 720"/>
+    <path class="wireV5"  d="M 378 679 L 378 720"/>
+    <path class="wireSig" d="M 450 679 L 450 720"/>
+    <path class="wireSig" d="M 486 679 L 486 720"/>
+    <path class="wireV5"  d="M 522 679 L 522 720"/>
+
+    <!-- USB-C breakout body (rows 21-22) -->
+    <rect class="compBody" x="108" y="720" width="468" height="40" rx="6" fill="#eef2ff"/>
+    <text class="compTitle" x="342" y="746">USB-C breakout</text>
+
+    <!-- Pin labels below the breakout (row 23) -->
+    <text class="padLabel" x="162" y="780">GND</text>
+    <text class="padLabel" x="234" y="780">VBUS</text>
+    <text class="padLabel" x="378" y="780">CC1</text>
+    <text class="padLabel" x="450" y="780">D+</text>
+    <text class="padLabel" x="486" y="780">D−</text>
+    <text class="padLabel" x="522" y="780">CC2</text>
+  </g>
+
+  <!-- LEGEND -->
+  <g transform="translate(80, 1040)">
+    <rect width="860" height="100" rx="6" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="18" y="24" font-size="13" font-weight="700" fill="#0f172a">Why this revision was rejected</text>
+    <text x="18" y="48" font-size="12" fill="#475569">R1 and R2 wrongly pull CC1 / CC2 <tspan font-weight="700">UP to +5 V</tspan> — USB-C sink-mode role detection requires them</text>
+    <text x="18" y="66" font-size="12" fill="#475569">pulled <tspan font-weight="700">DOWN to GND</tspan> (5.1 kΩ). The 5 V rail also needs a decoupling capacitor before VBUS.</text>
+    <text x="18" y="86" font-size="12" fill="#475569" font-style="italic">Superseded by the layout shown in IMG_179.</text>
+  </g>
+</svg>

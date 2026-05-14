@@ -1,0 +1,31 @@
+# Caddyfile para despliegue standalone (sin Docker).
+# Corre en :8080, proxy a los servicios locales en :3000 (frontend), :3001 (API), :3002 (WS).
+
+:8080 {
+    # ---- Basic Auth opcional (se activa si BASIC_AUTH_USER esta definido) ----
+    @needsAuth {
+        expression {env.BASIC_AUTH_USER} != ""
+    }
+    basic_auth @needsAuth {
+        {$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+    }
+
+    # ---- WebSocket: /ws -> localhost:3002 ----
+    @ws {
+        path /ws /ws/*
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @ws localhost:3002
+
+    # ---- API REST: /api/* -> localhost:3001 ----
+    reverse_proxy /api/* localhost:3001
+
+    # ---- Frontend: todo lo demas -> Next.js en localhost:3000 ----
+    reverse_proxy localhost:3000
+
+    log {
+        output stdout
+        format console
+    }
+}

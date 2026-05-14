@@ -38,8 +38,8 @@
       "Edit(.env)",
       "Edit(.env.*)",
       "Bash(rm -rf:*)",
-      "Bash(curl:* | bash)",
-      "Bash(wget:* | bash)"
+      "Bash(curl* | bash*)",
+      "Bash(wget* | bash*)"
     ]
   },
   "env": {

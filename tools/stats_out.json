@@ -1,0 +1,705 @@
+{
+  "schema": [
+    {
+      "cid": 0,
+      "name": "id",
+      "type": "INTEGER",
+      "notnull": 0,
+      "dflt_value": null,
+      "pk": 1
+    },
+    {
+      "cid": 1,
+      "name": "room",
+      "type": "TEXT",
+      "notnull": 1,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 2,
+      "name": "mic",
+      "type": "TEXT",
+      "notnull": 1,
+      "dflt_value": "'mic_01'",
+      "pk": 0
+    },
+    {
+      "cid": 3,
+      "name": "db_level",
+      "type": "REAL",
+      "notnull": 1,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 4,
+      "name": "peak_level",
+      "type": "REAL",
+      "notnull": 1,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 5,
+      "name": "timestamp",
+      "type": "INTEGER",
+      "notnull": 1,
+      "dflt_value": null,
+      "pk": 0
+    },
+    {
+      "cid": 6,
+      "name": "created_at",
+      "type": "TEXT",
+      "notnull": 0,
+      "dflt_value": "datetime('now')",
+      "pk": 0
+    }
+  ],
+  "total_rows": 657549,
+  "ts_min": "2026-04-20T06:32:42.000Z",
+  "ts_max": "2026-05-04T16:22:45.000Z",
+  "ts_span_days": 14.409756944444444,
+  "rooms": [
+    {
+      "room": "aula_01",
+      "n": 657549
+    }
+  ],
+  "mics_global": [
+    {
+      "mic": "mic_03",
+      "n": 95933
+    },
+    {
+      "mic": "mic_05",
+      "n": 95930
+    },
+    {
+      "mic": "mic_04",
+      "n": 95930
+    },
+    {
+      "mic": "mic_02",
+      "n": 95929
+    },
+    {
+      "mic": "mic_01",
+      "n": 95925
+    },
+    {
+      "mic": "mic_central",
+      "n": 88985
+    },
+    {
+      "mic": "mic_06",
+      "n": 88917
+    }
+  ],
+  "room_mic_combo": [
+    {
+      "room": "aula_01",
+      "mic": "mic_01",
+      "n": 95925,
+      "first_ts": 1776666762,
+      "last_ts": 1777911764
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_02",
+      "n": 95929,
+      "first_ts": 1776666763,
+      "last_ts": 1777911765
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_03",
+      "n": 95933,
+      "first_ts": 1776666763,
+      "last_ts": 1777911763
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_04",
+      "n": 95930,
+      "first_ts": 1776666762,
+      "last_ts": 1777911763
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_05",
+      "n": 95930,
+      "first_ts": 1776666763,
+      "last_ts": 1777911761
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_06",
+      "n": 88918,
+      "first_ts": 1776701631,
+      "last_ts": 1777911766
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "n": 88985,
+      "first_ts": 1776668355,
+      "last_ts": 1777911763
+    }
+  ],
+  "global_stats": {
+    "mean": 30.90662763287963,
+    "min": 17.1,
+    "max": 82.9,
+    "peak_mean": 37.30482488023725,
+    "peak_max": 84.6
+  },
+  "percentiles_db": {
+    "p05": 20.6,
+    "p10": 21.1,
+    "p25": 21.5,
+    "p50": 25.5,
+    "p75": 40,
+    "p90": 47.2,
+    "p95": 50.7,
+    "p99": 55.9
+  },
+  "percentiles_peak": {
+    "p50": 32.3,
+    "p90": 59.3,
+    "p95": 62.7,
+    "p99": 68.6
+  },
+  "bands": [
+    {
+      "band_low": 10,
+      "n": 2701
+    },
+    {
+      "band_low": 20,
+      "n": 367864
+    },
+    {
+      "band_low": 30,
+      "n": 121281
+    },
+    {
+      "band_low": 40,
+      "n": 126683
+    },
+    {
+      "band_low": 50,
+      "n": 38070
+    },
+    {
+      "band_low": 60,
+      "n": 947
+    },
+    {
+      "band_low": 70,
+      "n": 11
+    },
+    {
+      "band_low": 80,
+      "n": 1
+    }
+  ],
+  "thresholds": {
+    "bajo": 618529,
+    "medio": 39017,
+    "alto": 12
+  },
+  "per_mic": [
+    {
+      "mic": "mic_03",
+      "n": 95934,
+      "mean": 31.82917005441241,
+      "min": 20.8,
+      "max": 77.6,
+      "p50": 26,
+      "p95": 51.3,
+      "peak_mean": 38.55248504179957,
+      "peak_max": 84.6
+    },
+    {
+      "mic": "mic_05",
+      "n": 95932,
+      "mean": 32.711835466788976,
+      "min": 21.1,
+      "max": 73.3,
+      "p50": 27.6,
+      "p95": 53,
+      "peak_mean": 39.26522745277905,
+      "peak_max": 82.2
+    },
+    {
+      "mic": "mic_04",
+      "n": 95931,
+      "mean": 29.773011852268816,
+      "min": 21.3,
+      "max": 64.4,
+      "p50": 24.5,
+      "p95": 45.9,
+      "peak_mean": 35.78487037558245,
+      "peak_max": 77.8
+    },
+    {
+      "mic": "mic_02",
+      "n": 95930,
+      "mean": 26.78453768372772,
+      "min": 20.4,
+      "max": 54.5,
+      "p50": 22.4,
+      "p95": 40.9,
+      "peak_mean": 32.1195861565725,
+      "peak_max": 78.3
+    },
+    {
+      "mic": "mic_01",
+      "n": 95926,
+      "mean": 29.740374872297398,
+      "min": 21.4,
+      "max": 63.4,
+      "p50": 24.7,
+      "p95": 46.2,
+      "peak_mean": 35.57496299230657,
+      "peak_max": 78.6
+    },
+    {
+      "mic": "mic_central",
+      "n": 88987,
+      "mean": 34.28691381887242,
+      "min": 17.1,
+      "max": 82.9,
+      "p50": 29.3,
+      "p95": 55.7,
+      "peak_mean": 42.01377841707216,
+      "peak_max": 83.8
+    },
+    {
+      "mic": "mic_06",
+      "n": 88920,
+      "mean": 31.508454790823208,
+      "min": 21.2,
+      "max": 76.4,
+      "p50": 25.6,
+      "p95": 50.9,
+      "peak_mean": 38.230179937022044,
+      "peak_max": 82.8
+    }
+  ],
+  "by_hour_local": [
+    {
+      "hour": 0,
+      "n": 22207,
+      "mean": 21.31652632052956,
+      "max": 24.2,
+      "peak_max": 35.9
+    },
+    {
+      "hour": 1,
+      "n": 19953,
+      "mean": 21.423114318648825,
+      "max": 25.5,
+      "peak_max": 37.3
+    },
+    {
+      "hour": 2,
+      "n": 19953,
+      "mean": 21.403372926376985,
+      "max": 25.6,
+      "peak_max": 38.1
+    },
+    {
+      "hour": 3,
+      "n": 19951,
+      "mean": 21.37442734700015,
+      "max": 24.1,
+      "peak_max": 37.9
+    },
+    {
+      "hour": 4,
+      "n": 19954,
+      "mean": 21.419339480805853,
+      "max": 23.9,
+      "peak_max": 40.1
+    },
+    {
+      "hour": 5,
+      "n": 19953,
+      "mean": 21.495855259860672,
+      "max": 24.3,
+      "peak_max": 34.1
+    },
+    {
+      "hour": 6,
+      "n": 19953,
+      "mean": 21.526086302811606,
+      "max": 23.9,
+      "peak_max": 39.3
+    },
+    {
+      "hour": 7,
+      "n": 19952,
+      "mean": 21.57992682437851,
+      "max": 27.2,
+      "peak_max": 48.1
+    },
+    {
+      "hour": 8,
+      "n": 25776,
+      "mean": 34.53179314090627,
+      "max": 65.5,
+      "peak_max": 78.4
+    },
+    {
+      "hour": 9,
+      "n": 28526,
+      "mean": 41.120051882493165,
+      "max": 66.3,
+      "peak_max": 81.7
+    },
+    {
+      "hour": 10,
+      "n": 28504,
+      "mean": 42.459205725512206,
+      "max": 66.3,
+      "peak_max": 80.7
+    },
+    {
+      "hour": 11,
+      "n": 30055,
+      "mean": 34.24122109465979,
+      "max": 68,
+      "peak_max": 80.5
+    },
+    {
+      "hour": 12,
+      "n": 33416,
+      "mean": 43.387724443380414,
+      "max": 68.5,
+      "peak_max": 79.2
+    },
+    {
+      "hour": 13,
+      "n": 33492,
+      "mean": 39.03996775349337,
+      "max": 67.1,
+      "peak_max": 84.6
+    },
+    {
+      "hour": 14,
+      "n": 33496,
+      "mean": 27.635872940052543,
+      "max": 67,
+      "peak_max": 80.1
+    },
+    {
+      "hour": 15,
+      "n": 33484,
+      "mean": 29.62710249671485,
+      "max": 63.6,
+      "peak_max": 81.2
+    },
+    {
+      "hour": 16,
+      "n": 37520,
+      "mean": 36.737414712153516,
+      "max": 65.6,
+      "peak_max": 80.1
+    },
+    {
+      "hour": 17,
+      "n": 38331,
+      "mean": 40.26531788891498,
+      "max": 64.7,
+      "peak_max": 81
+    },
+    {
+      "hour": 18,
+      "n": 36037,
+      "mean": 33.86054888031745,
+      "max": 82.9,
+      "peak_max": 83.8
+    },
+    {
+      "hour": 19,
+      "n": 32798,
+      "mean": 35.47436429050552,
+      "max": 67.2,
+      "peak_max": 81.6
+    },
+    {
+      "hour": 20,
+      "n": 29433,
+      "mean": 32.4426324193932,
+      "max": 63.8,
+      "peak_max": 83.3
+    },
+    {
+      "hour": 21,
+      "n": 24939,
+      "mean": 22.12671718994346,
+      "max": 61.9,
+      "peak_max": 79.4
+    },
+    {
+      "hour": 22,
+      "n": 24940,
+      "mean": 21.312225340817964,
+      "max": 25.5,
+      "peak_max": 40.5
+    },
+    {
+      "hour": 23,
+      "n": 24942,
+      "mean": 21.2894715740518,
+      "max": 25.6,
+      "peak_max": 38.1
+    }
+  ],
+  "by_dow_local": [
+    {
+      "dow": 1,
+      "n": 175204,
+      "mean": 34.884318851167784
+    },
+    {
+      "dow": 2,
+      "n": 160778,
+      "mean": 29.20168431004242
+    },
+    {
+      "dow": 3,
+      "n": 217328,
+      "mean": 29.36945584554222
+    },
+    {
+      "dow": 4,
+      "n": 104255,
+      "mean": 30.054713922593642
+    }
+  ],
+  "by_date_local": [
+    {
+      "d": "2026-04-20",
+      "n": 62916,
+      "mean": 32.897326594189074,
+      "max": 66.4,
+      "peak_max": 80.1
+    },
+    {
+      "d": "2026-04-21",
+      "n": 41063,
+      "mean": 30.96450819472518,
+      "max": 66.5,
+      "peak_max": 83.3
+    },
+    {
+      "d": "2026-04-22",
+      "n": 97638,
+      "mean": 31.178193940883673,
+      "max": 66.9,
+      "peak_max": 84.6
+    },
+    {
+      "d": "2026-04-27",
+      "n": 78996,
+      "mean": 35.54803281178794,
+      "max": 82.9,
+      "peak_max": 83.8
+    },
+    {
+      "d": "2026-04-28",
+      "n": 119715,
+      "mean": 28.597024600091885,
+      "max": 67.2,
+      "peak_max": 81
+    },
+    {
+      "d": "2026-04-29",
+      "n": 119690,
+      "mean": 27.893964408054142,
+      "max": 66.3,
+      "peak_max": 81.7
+    },
+    {
+      "d": "2026-04-30",
+      "n": 104255,
+      "mean": 30.054713922593642,
+      "max": 68.5,
+      "peak_max": 79.6
+    },
+    {
+      "d": "2026-05-04",
+      "n": 33294,
+      "mean": 37.06385534931219,
+      "max": 67.1,
+      "peak_max": 81.1
+    }
+  ],
+  "events_peak_ge_80": {
+    "n_events": 38,
+    "n_sources": 4
+  },
+  "events_peak_ge_90": {
+    "n_events": 0
+  },
+  "top_peaks": [
+    {
+      "room": "aula_01",
+      "mic": "mic_03",
+      "db_level": 56.2,
+      "peak_level": 84.6,
+      "local_ts": "2026-04-22 13:13:48"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 63.5,
+      "peak_level": 83.8,
+      "local_ts": "2026-04-27 18:15:11"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 63.7,
+      "peak_level": 83.7,
+      "local_ts": "2026-04-27 18:16:32"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 82.9,
+      "peak_level": 83.5,
+      "local_ts": "2026-04-27 18:16:37"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 48,
+      "peak_level": 83.3,
+      "local_ts": "2026-04-21 20:01:20"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 71.8,
+      "peak_level": 83.2,
+      "local_ts": "2026-04-27 18:18:08"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 63.5,
+      "peak_level": 83.1,
+      "local_ts": "2026-04-27 18:17:43"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 69.2,
+      "peak_level": 83,
+      "local_ts": "2026-04-27 18:16:42"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_06",
+      "db_level": 44.9,
+      "peak_level": 82.8,
+      "local_ts": "2026-04-21 20:01:23"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 56,
+      "peak_level": 82.7,
+      "local_ts": "2026-04-27 18:15:27"
+    }
+  ],
+  "top_db": [
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 82.9,
+      "peak_level": 83.5,
+      "local_ts": "2026-04-27 18:16:37"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_03",
+      "db_level": 77.6,
+      "peak_level": 78.8,
+      "local_ts": "2026-04-27 18:16:38"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_06",
+      "db_level": 76.4,
+      "peak_level": 81.2,
+      "local_ts": "2026-04-27 18:16:39"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_06",
+      "db_level": 75.8,
+      "peak_level": 82.7,
+      "local_ts": "2026-04-27 18:18:10"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 74.3,
+      "peak_level": 79.1,
+      "local_ts": "2026-04-27 18:17:18"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_05",
+      "db_level": 73.3,
+      "peak_level": 77.8,
+      "local_ts": "2026-04-27 18:16:35"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 73,
+      "peak_level": 81.9,
+      "local_ts": "2026-04-27 18:18:13"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 72.2,
+      "peak_level": 82.6,
+      "local_ts": "2026-04-27 18:19:49"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 71.8,
+      "peak_level": 83.2,
+      "local_ts": "2026-04-27 18:18:08"
+    },
+    {
+      "room": "aula_01",
+      "mic": "mic_central",
+      "db_level": 71.4,
+      "peak_level": 82.2,
+      "local_ts": "2026-04-27 18:15:21"
+    }
+  ],
+  "central_vs_distrib": {
+    "central": 88988,
+    "distrib": 568581
+  },
+  "central_offset_check": [
+    {
+      "room": "aula_01",
+      "central_mean": 34.28685890232391,
+      "distrib_mean": 30.377378069263656,
+      "diff": 3.9094808330602504
+    }
+  ]
+}

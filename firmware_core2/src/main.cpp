@@ -73,6 +73,10 @@ bool wifiConnected = false;
 bool mqttConnected = false;
 unsigned long lastMqttSendOk = 0;
 
+// Estado de batería (cacheado para pintar en status bar)
+int batteryLevel = -1;   // 0-100, -1 = desconocido
+bool batteryCharging = false;
+
 // ============================================
 // Colores para la pantalla
 // ============================================
@@ -105,11 +109,24 @@ void drawStatusBar() {
     M5.Lcd.setTextColor(COLOR_YELLOW);
     M5.Lcd.drawString("dBA", 140, 8);
 
+    // Batería (esquina superior derecha)
     M5.Lcd.setTextDatum(TR_DATUM);
+    if (batteryLevel >= 0) {
+        uint16_t battColor;
+        if (batteryCharging)        battColor = COLOR_BLUE;
+        else if (batteryLevel < 20) battColor = COLOR_RED;
+        else if (batteryLevel < 50) battColor = COLOR_YELLOW;
+        else                        battColor = COLOR_GREEN;
+        M5.Lcd.setTextColor(battColor);
+        char battStr[16];
+        snprintf(battStr, sizeof(battStr), "%s%d%%", batteryCharging ? "+" : "", batteryLevel);
+        M5.Lcd.drawString(battStr, SCREEN_WIDTH - 8, 8);
+    }
+
     M5.Lcd.setTextColor(COLOR_GRAY);
     char idStr[64];
     snprintf(idStr, sizeof(idStr), "%s / %s", ROOM_ID, MIC_ID);
-    M5.Lcd.drawString(idStr, SCREEN_WIDTH - 8, 8);
+    M5.Lcd.drawString(idStr, SCREEN_WIDTH - 60, 8);
 }
 
 void drawDbLevel(float db) {
@@ -476,6 +493,10 @@ void sendNoiseData() {
     doc["db"] = round(avgDb * 10.0) / 10.0;
     doc["peak"] = round(peak * 10.0) / 10.0;
     doc["timestamp"] = (unsigned long)(millis() / 1000);
+    if (batteryLevel >= 0) {
+        doc["battery"] = batteryLevel;
+        doc["charging"] = batteryCharging;
+    }
 
     char payload[256];
     serializeJson(doc, payload, sizeof(payload));
@@ -552,6 +573,15 @@ void loop() {
     readAudioLevel();
 
     unsigned long now = millis();
+
+    // Refrescar lectura de batería cada 5s (AXP192 vía M5Unified)
+    static unsigned long lastBatteryRead = 0;
+    if (now - lastBatteryRead >= 5000 || lastBatteryRead == 0) {
+        lastBatteryRead = now;
+        int lvl = M5.Power.getBatteryLevel();
+        if (lvl >= 0 && lvl <= 100) batteryLevel = lvl;
+        batteryCharging = M5.Power.isCharging();
+    }
 
     // Enviar datos MQTT cada SEND_INTERVAL_MS
     if (now - lastSendTime >= SEND_INTERVAL_MS) {

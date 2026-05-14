@@ -33,7 +33,7 @@ export interface HistoryReading {
 }
 
 /** Vista actual del dashboard */
-type View = "dashboard" | "room" | "mic" | "schedule";
+type View = "dashboard" | "room" | "mic" | "schedule" | "compare";
 
 /** Estado del hook */
 interface NoiseDataState {
@@ -42,12 +42,34 @@ interface NoiseDataState {
     view: View;
     selectedRoom: string | null;
     selectedMic: string | null;
+    selectedDate: string | null; // YYYY-MM-DD, solo para vista schedule
     history: HistoryReading[];
     loading: boolean;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3002";
+// En produccion detras de Caddy: rutas relativas (API en /api, WS en /ws).
+// En dev sin backend proxy: defaults a localhost.
+function resolveApiUrl(): string {
+    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+    if (typeof window !== "undefined") return "";
+    return "http://localhost:3001";
+}
+
+function resolveWsUrl(): string {
+    if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+    if (typeof window !== "undefined") {
+        // Dev directo: Next.js en 3000 + backend WS en 3002
+        if (window.location.hostname === "localhost" && window.location.port === "3000") {
+            return "ws://localhost:3002";
+        }
+        const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+        return `${proto}//${window.location.host}/ws`;
+    }
+    return "ws://localhost:3002";
+}
+
+const API_URL = resolveApiUrl();
+const WS_URL = resolveWsUrl();
 
 const MAX_SPARKLINE_POINTS = 30;
 
@@ -58,6 +80,7 @@ export function useNoiseData() {
         view: "dashboard",
         selectedRoom: null,
         selectedMic: null,
+        selectedDate: null,
         history: [],
         loading: false,
     });
@@ -171,13 +194,26 @@ export function useNoiseData() {
         }
     }, []);
 
-    // Navegar a vista de horario
-    const selectSchedule = useCallback((roomId: string) => {
+    // Navegar al comparador
+    const selectCompare = useCallback(() => {
+        setState((prev) => ({
+            ...prev,
+            view: "compare",
+            selectedRoom: null,
+            selectedMic: null,
+            selectedDate: null,
+            history: [],
+        }));
+    }, []);
+
+    // Navegar a vista de horario (opcionalmente con fecha inicial YYYY-MM-DD)
+    const selectSchedule = useCallback((roomId: string, date?: string) => {
         setState((prev) => ({
             ...prev,
             view: "schedule",
             selectedRoom: roomId,
             selectedMic: null,
+            selectedDate: date || null,
             history: [],
         }));
     }, []);
@@ -223,11 +259,13 @@ export function useNoiseData() {
         view: state.view,
         selectedRoom: state.selectedRoom,
         selectedMic: state.selectedMic,
+        selectedDate: state.selectedDate,
         history: state.history,
         loading: state.loading,
         selectRoom,
         selectMic,
         selectSchedule,
+        selectCompare,
         goBack,
         getSparkline,
         getRoomData: (roomId: string) => state.rooms.get(roomId) || null,

@@ -65,3 +65,22 @@ backend/data/
 *.tmp
 .cache/
 coverage/
+
+# Runtimes/binarios locales (instalacion portable de Node y tools .exe)
+nodejs/
+tools/*.exe
+
+# Build artifacts de Next.js
+*.tsbuildinfo
+
+# LaTeX (artefactos intermedios; el .pdf si se versiona)
+*.aux
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.log
+
+# Scripts temporales del agente
+.tsc_check.ps1

@@ -1,12 +1,14 @@
 import type { NextConfig } from "next";
 
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
+
 const nextConfig: NextConfig = {
-    // Permitir conexiones al backend durante desarrollo
+    output: "standalone",
     async rewrites() {
         return [
             {
                 source: "/api/:path*",
-                destination: "http://localhost:3001/api/:path*",
+                destination: `${BACKEND_URL}/api/:path*`,
             },
         ];
     },

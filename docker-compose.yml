@@ -1,45 +1,70 @@
-version: "3.8"
-
 services:
-  mosquitto:
-    image: eclipse-mosquitto:2
-    container_name: aulas-mosquitto
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
-    restart: unless-stopped
-    command: >
-      sh -c "
-      mkdir -p /mosquitto/config &&
-      echo 'listener 1883' > /mosquitto/config/mosquitto.conf &&
-      echo 'listener 9001' >> /mosquitto/config/mosquitto.conf &&
-      echo 'protocol websockets' >> /mosquitto/config/mosquitto.conf &&
-      echo 'allow_anonymous true' >> /mosquitto/config/mosquitto.conf &&
-      echo 'persistence true' >> /mosquitto/config/mosquitto.conf &&
-      echo 'persistence_location /mosquitto/data/' >> /mosquitto/config/mosquitto.conf &&
-      echo 'log_dest file /mosquitto/log/mosquitto.log' >> /mosquitto/config/mosquitto.conf &&
-      /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
-      "
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: aulas-backend
-    ports:
-      - "3001:3001"
-      - "3002:3002"
     environment:
-      - MQTT_BROKER=mqtt://mosquitto
-      - MQTT_PORT=1883
+      - MQTT_BROKER=${MQTT_BROKER:-mqtt://broker.hivemq.com}
+      - MQTT_PORT=${MQTT_PORT:-1883}
       - HTTP_PORT=3001
       - WS_PORT=3002
-    depends_on:
-      - mosquitto
-    restart: unless-stopped
+      - DB_PATH=/app/data/noise.db
+      - USE_INTERNAL_BROKER=false
+      - RAW_RETENTION_DAYS=${RAW_RETENTION_DAYS:-14}
+      - MINUTE_RETENTION_DAYS=${MINUTE_RETENTION_DAYS:-180}
     volumes:
-      - ./backend/data:/app/data
+      - noise_data:/app/data
+    restart: unless-stopped
+    networks:
+      - aulas
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aulas-frontend
+    environment:
+      - NODE_ENV=production
+      - BACKEND_URL=http://backend:3001
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - aulas
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: aulas-caddy
+    environment:
+      - BASIC_AUTH_USER=${BASIC_AUTH_USER}
+      - BASIC_AUTH_HASH=${BASIC_AUTH_HASH}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - aulas
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: aulas-cloudflared
+    command: tunnel --no-autoupdate --url http://caddy:80
+    depends_on:
+      - caddy
+    restart: unless-stopped
+    networks:
+      - aulas
+
+volumes:
+  noise_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  aulas:
+    driver: bridge

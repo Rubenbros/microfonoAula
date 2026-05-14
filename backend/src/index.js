@@ -6,7 +6,9 @@
  * Soporta multiples microfonos por aula.
  */
 
+// Carga .env: primero del backend, luego del repo root como fallback.
 require("dotenv").config();
+require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
 
 const express = require("express");
 const mqtt = require("mqtt");
@@ -19,7 +21,7 @@ const fs = require("fs");
 // Configuracion
 // ============================================
 const USE_INTERNAL_BROKER = process.env.USE_INTERNAL_BROKER === "true";
-const MQTT_BROKER = process.env.MQTT_BROKER || "mqtt://localhost";
+const MQTT_BROKER = process.env.MQTT_BROKER || "mqtt://broker.hivemq.com";
 const MQTT_PORT = parseInt(process.env.MQTT_PORT || "1883");
 
 // ============================================
@@ -102,6 +104,12 @@ db.exec(`
 `);
 
 console.log("[DB] Base de datos SQLite inicializada");
+
+// ============================================
+// Rollup en escalera + purgas
+// ============================================
+const { initRollup } = require("./rollup");
+const rollup = initRollup(db);
 
 // Prepared statements
 const insertReading = db.prepare(`
@@ -273,9 +281,13 @@ mqttClient.on("message", (topic, message) => {
             return;
         }
 
+        // Telemetría de batería (solo presente en el central)
+        const battery = typeof data.battery === "number" ? data.battery : null;
+        const charging = typeof data.charging === "boolean" ? data.charging : null;
+
         const serverTimestamp = Math.floor(Date.now() / 1000);
 
-        // Guardar en SQLite
+        // Guardar en SQLite (batería no se persiste, solo estado en vivo)
         insertReading.run(room, mic, dbLevel, peak, serverTimestamp);
 
         // Actualizar estado en memoria
@@ -290,6 +302,8 @@ mqttClient.on("message", (topic, message) => {
             peak,
             timestamp: serverTimestamp,
             online: true,
+            ...(battery !== null ? { battery } : {}),
+            ...(charging !== null ? { charging } : {}),
         };
 
         latestReadings.get(room).set(mic, {
@@ -308,7 +322,7 @@ mqttClient.on("message", (topic, message) => {
 });
 
 mqttClient.on("error", (err) => {
-    console.error("[MQTT] Error:", err.message);
+    console.error("[MQTT] Error:", err.code || err.errno || err.name || "unknown", "-", err.message || String(err));
 });
 
 mqttClient.on("reconnect", () => {
@@ -355,6 +369,42 @@ app.get("/api/rooms/:id", (req, res) => {
     }
 });
 
+// GET /api/rooms/:id/days?from=YYYY-MM-DD&to=YYYY-MM-DD
+// Devuelve avg/max/samples agregado por dia (para heatmap de calendario).
+// Rango por defecto: ultimos 35 dias.
+app.get("/api/rooms/:id/days", (req, res) => {
+    try {
+        const roomId = req.params.id;
+        const now = Math.floor(Date.now() / 1000);
+
+        // Parse dates: YYYY-MM-DD
+        const parseDate = (s) => {
+            if (!s) return null;
+            const d = new Date(s + "T00:00:00");
+            if (isNaN(d.getTime())) return null;
+            return Math.floor(d.getTime() / 1000);
+        };
+
+        const fromTs = parseDate(req.query.from) || (now - 35 * 86400);
+        const toTs = (parseDate(req.query.to) || now) + 86400 - 1; // incluye dia completo
+
+        // Construir spec como si fuera una serie del comparador
+        const spec = { room: roomId, from: fromTs, to: toTs };
+        const { granularity, days } = compare.computeDayBreakdown(db, spec, retention);
+
+        res.json({
+            room: roomId,
+            from: new Date(fromTs * 1000).toISOString().slice(0, 10),
+            to: new Date(toTs * 1000).toISOString().slice(0, 10),
+            granularity,
+            days, // [{ day: "2026-04-15", stats: {avg, min, max, maxPeak, samples, buckets} }]
+        });
+    } catch (err) {
+        console.error("[API] Error en /api/rooms/:id/days:", err.message);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
 // GET /api/rooms/:id/history - Historico de un aula (todos los mics)
 app.get("/api/rooms/:id/history", (req, res) => {
     try {
@@ -363,17 +413,24 @@ app.get("/api/rooms/:id/history", (req, res) => {
         const from = parseInt(req.query.from) || now - 3600;
         const to = parseInt(req.query.to) || now;
 
-        const readings = getRoomHistory.all(roomId, from, to);
-        const result = readings.map((r) => ({
-            id: r.id,
-            room: r.room,
-            mic: r.mic,
-            db: r.db_level,
-            peak: r.peak_level,
-            timestamp: r.timestamp,
-        }));
+        const picked = rollup.queryHistory({ room: roomId, mic: null, from, to });
+        let readings, granularity;
 
-        res.json({ room: roomId, from, to, count: result.length, readings: result });
+        if (picked.granularity === "raw") {
+            granularity = "raw";
+            readings = getRoomHistory.all(roomId, from, to).map((r) => ({
+                room: r.room,
+                mic: r.mic,
+                db: r.db_level,
+                peak: r.peak_level,
+                timestamp: r.timestamp,
+            }));
+        } else {
+            granularity = picked.granularity;
+            readings = picked.rows;
+        }
+
+        res.json({ room: roomId, from, to, granularity, count: readings.length, readings });
     } catch (err) {
         console.error("[API] Error en /api/rooms/:id/history:", err.message);
         res.status(500).json({ error: "Error interno del servidor" });
@@ -388,17 +445,24 @@ app.get("/api/rooms/:id/mics/:micId/history", (req, res) => {
         const from = parseInt(req.query.from) || now - 3600;
         const to = parseInt(req.query.to) || now;
 
-        const readings = getHistory.all(roomId, micId, from, to);
-        const result = readings.map((r) => ({
-            id: r.id,
-            room: r.room,
-            mic: r.mic,
-            db: r.db_level,
-            peak: r.peak_level,
-            timestamp: r.timestamp,
-        }));
+        const picked = rollup.queryHistory({ room: roomId, mic: micId, from, to });
+        let readings, granularity;
 
-        res.json({ room: roomId, mic: micId, from, to, count: result.length, readings: result });
+        if (picked.granularity === "raw") {
+            granularity = "raw";
+            readings = getHistory.all(roomId, micId, from, to).map((r) => ({
+                room: r.room,
+                mic: r.mic,
+                db: r.db_level,
+                peak: r.peak_level,
+                timestamp: r.timestamp,
+            }));
+        } else {
+            granularity = picked.granularity;
+            readings = picked.rows;
+        }
+
+        res.json({ room: roomId, mic: micId, from, to, granularity, count: readings.length, readings });
     } catch (err) {
         console.error("[API] Error en mic history:", err.message);
         res.status(500).json({ error: "Error interno del servidor" });
@@ -474,8 +538,8 @@ function getSlotTimestamps(slot, dateStr) {
     return { startTs, endTs };
 }
 
-// Prepared statement for slot stats
-const getSlotStats = db.prepare(`
+// Prepared statement for slot stats (raw data, reciente)
+const getSlotStatsRaw = db.prepare(`
     SELECT
         COUNT(*) as readings,
         ROUND(AVG(db_level), 1) as avg_db,
@@ -486,11 +550,46 @@ const getSlotStats = db.prepare(`
     WHERE room = ? AND timestamp >= ? AND timestamp <= ?
 `);
 
-const getSlotPercentiles = db.prepare(`
+const getSlotPercentilesRaw = db.prepare(`
     SELECT db_level FROM noise_readings
     WHERE room = ? AND timestamp >= ? AND timestamp <= ?
     ORDER BY db_level ASC
 `);
+
+// Equivalentes sobre minute aggregates (para fechas > 14 dias)
+const getSlotStatsMinute = db.prepare(`
+    SELECT
+        SUM(sample_count) as readings,
+        ROUND(SUM(avg_db * sample_count) / SUM(sample_count), 1) as avg_db,
+        ROUND(MAX(max_db), 1) as max_db,
+        ROUND(MIN(min_db), 1) as min_db,
+        ROUND(MAX(max_peak), 1) as max_peak
+    FROM noise_minute
+    WHERE room = ? AND bucket_ts >= ? AND bucket_ts <= ?
+`);
+
+const getSlotPercentilesMinute = db.prepare(`
+    SELECT avg_db as db_level FROM noise_minute
+    WHERE room = ? AND bucket_ts >= ? AND bucket_ts <= ?
+    ORDER BY avg_db ASC
+`);
+
+function getSlotSource(endTs) {
+    const now = Math.floor(Date.now() / 1000);
+    const rawCutoff = now - rollup.RAW_RETENTION_DAYS * 86400;
+    return endTs >= rawCutoff ? "raw" : "minute";
+}
+
+function querySlotStats(roomId, startTs, endTs) {
+    const source = getSlotSource(endTs);
+    const statsStmt = source === "raw" ? getSlotStatsRaw : getSlotStatsMinute;
+    const pctStmt = source === "raw" ? getSlotPercentilesRaw : getSlotPercentilesMinute;
+    return {
+        source,
+        stats: statsStmt.get(roomId, startTs, endTs),
+        rows: pctStmt.all(roomId, startTs, endTs),
+    };
+}
 
 app.get("/api/rooms/:id/schedule", (req, res) => {
     try {
@@ -499,11 +598,12 @@ app.get("/api/rooms/:id/schedule", (req, res) => {
 
         const slots = SCHEDULE_SLOTS.map(slot => {
             const { startTs, endTs } = getSlotTimestamps(slot, dateStr);
-            const stats = getSlotStats.get(roomId, startTs, endTs);
+            const { source, stats, rows } = querySlotStats(roomId, startTs, endTs);
 
             let p10 = null, p50 = null, p90 = null, stdDev = null;
-            if (stats && stats.readings > 0) {
-                const rows = getSlotPercentiles.all(roomId, startTs, endTs);
+            let timeAbove70 = 0, timeAbove50 = 0;
+
+            if (stats && stats.readings > 0 && rows.length > 0) {
                 const values = rows.map(r => r.db_level);
                 const n = values.length;
                 p10 = values[Math.floor(n * 0.1)] || values[0];
@@ -512,25 +612,20 @@ app.get("/api/rooms/:id/schedule", (req, res) => {
 
                 const mean = values.reduce((a, b) => a + b, 0) / n;
                 stdDev = Math.round(Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / n) * 10) / 10;
+
+                timeAbove70 = Math.round((values.filter(v => v > 70).length / n) * 100);
+                timeAbove50 = Math.round((values.filter(v => v > 50).length / n) * 100);
             }
 
-            // Determine if slot is currently active
             const now = Math.floor(Date.now() / 1000);
             const active = now >= startTs && now <= endTs;
-
-            // Time above thresholds
-            let timeAbove70 = 0, timeAbove50 = 0;
-            if (stats && stats.readings > 0) {
-                const rows = getSlotPercentiles.all(roomId, startTs, endTs);
-                timeAbove70 = Math.round((rows.filter(r => r.db_level > 70).length / rows.length) * 100);
-                timeAbove50 = Math.round((rows.filter(r => r.db_level > 50).length / rows.length) * 100);
-            }
 
             return {
                 ...slot,
                 startTs,
                 endTs,
                 active,
+                source, // "raw" | "minute" - util para saber la precision
                 stats: stats && stats.readings > 0 ? {
                     readings: stats.readings,
                     avg: stats.avg_db,
@@ -580,6 +675,167 @@ app.get("/api/rooms/:id/schedule", (req, res) => {
     } catch (err) {
         console.error("[API] Error en /api/rooms/:id/schedule:", err.message);
         res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
+// ============================================
+// Comparador de series
+// ============================================
+const compare = require("./compare");
+
+const retention = {
+    rawDays: rollup.RAW_RETENTION_DAYS,
+    minuteDays: rollup.MINUTE_RETENTION_DAYS,
+};
+
+// GET /api/meta - aulas con datos + cursos disponibles + rango global
+app.get("/api/meta", (req, res) => {
+    try {
+        res.json(compare.getMeta(db));
+    } catch (err) {
+        console.error("[API] Error en /api/meta:", err.message);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
+// Helper: ejecuta una serie con breakdown opcional
+function runSeries(spec, breakdown) {
+    const result = {
+        id: spec.id,
+        label: spec.label || spec.id,
+        room: spec.room,
+        mic: spec.mic || null,
+        from: spec.from,
+        to: spec.to,
+    };
+    const stats = compare.computeSeriesStats(db, spec, retention);
+    result.granularity = stats.granularity;
+    result.summary = stats.summary;
+
+    if (breakdown === "slot") {
+        result.breakdown = compare.computeSlotBreakdown(db, spec, retention, SCHEDULE_SLOTS);
+    } else if (breakdown === "day") {
+        result.breakdown = compare.computeDayBreakdown(db, spec, retention);
+    }
+    return result;
+}
+
+// Validacion basica de una serie
+function validateSeries(s, idx) {
+    if (!s || typeof s !== "object") throw new Error(`series[${idx}] invalida`);
+    if (!s.room || typeof s.room !== "string") throw new Error(`series[${idx}].room requerido`);
+    const from = parseInt(s.from);
+    const to = parseInt(s.to);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) throw new Error(`series[${idx}].from/to deben ser timestamps unix`);
+    if (from >= to) throw new Error(`series[${idx}]: from debe ser < to`);
+    return { id: s.id || `s${idx}`, label: s.label, room: s.room, mic: s.mic || null, from, to };
+}
+
+// POST /api/compare - endpoint flexible
+// Body: { series: [...], breakdown?: "slot" | "day" }
+app.post("/api/compare", (req, res) => {
+    try {
+        const { series, breakdown } = req.body || {};
+        if (!Array.isArray(series) || series.length === 0) {
+            return res.status(400).json({ error: "series debe ser array no vacio" });
+        }
+        if (series.length > 12) {
+            return res.status(400).json({ error: "maximo 12 series por request" });
+        }
+        const validBreakdowns = [null, undefined, "none", "slot", "day"];
+        if (!validBreakdowns.includes(breakdown)) {
+            return res.status(400).json({ error: `breakdown debe ser uno de: slot, day, none` });
+        }
+
+        const specs = series.map((s, i) => validateSeries(s, i));
+        const results = specs.map(spec => runSeries(spec, breakdown));
+        res.json({ series: results });
+    } catch (err) {
+        console.error("[API] Error en /api/compare:", err.message);
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// GET /api/compare/rooms?rooms=aula_01,aula_02&from=&to=&breakdown=slot
+// Compara aulas en mismo rango temporal
+app.get("/api/compare/rooms", (req, res) => {
+    try {
+        const rooms = (req.query.rooms || "").split(",").map(s => s.trim()).filter(Boolean);
+        if (rooms.length === 0) return res.status(400).json({ error: "rooms es requerido" });
+        const now = Math.floor(Date.now() / 1000);
+        const from = parseInt(req.query.from) || now - 86400;
+        const to = parseInt(req.query.to) || now;
+        const breakdown = req.query.breakdown || null;
+
+        const specs = rooms.map((room, i) => ({
+            id: room,
+            label: room,
+            room,
+            from, to,
+        }));
+        const results = specs.map(spec => runSeries(spec, breakdown));
+        res.json({ series: results });
+    } catch (err) {
+        console.error("[API] Error en /api/compare/rooms:", err.message);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
+// GET /api/compare/days?room=aula_01&dates=2026-04-15,2026-04-16&breakdown=slot
+// Compara la misma aula en distintos dias (YYYY-MM-DD)
+app.get("/api/compare/days", (req, res) => {
+    try {
+        const room = req.query.room;
+        if (!room) return res.status(400).json({ error: "room es requerido" });
+        const dates = (req.query.dates || "").split(",").map(s => s.trim()).filter(Boolean);
+        if (dates.length === 0) return res.status(400).json({ error: "dates es requerido (YYYY-MM-DD,YYYY-MM-DD)" });
+        const breakdown = req.query.breakdown || null;
+        const mic = req.query.mic || null;
+
+        const specs = dates.map(date => {
+            const { startTs, endTs } = compare.dayRangeFromDateStr(date);
+            return {
+                id: date,
+                label: `${room} — ${date}`,
+                room, mic,
+                from: startTs,
+                to: endTs,
+            };
+        });
+        const results = specs.map(spec => runSeries(spec, breakdown));
+        res.json({ series: results });
+    } catch (err) {
+        console.error("[API] Error en /api/compare/days:", err.message);
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// GET /api/compare/cursos?room=aula_01&cursos=2024-2025,2025-2026&breakdown=day
+// Compara la misma aula en distintos cursos escolares
+app.get("/api/compare/cursos", (req, res) => {
+    try {
+        const room = req.query.room;
+        if (!room) return res.status(400).json({ error: "room es requerido" });
+        const cursos = (req.query.cursos || "").split(",").map(s => s.trim()).filter(Boolean);
+        if (cursos.length === 0) return res.status(400).json({ error: "cursos es requerido (YYYY-YYYY,YYYY-YYYY)" });
+        const breakdown = req.query.breakdown || null;
+        const mic = req.query.mic || null;
+
+        const specs = cursos.map(cursoId => {
+            const c = compare.cursoToRange(cursoId);
+            return {
+                id: cursoId,
+                label: `${room} — ${c.label}`,
+                room, mic,
+                from: c.startTs,
+                to: c.endTs,
+            };
+        });
+        const results = specs.map(spec => runSeries(spec, breakdown));
+        res.json({ series: results });
+    } catch (err) {
+        console.error("[API] Error en /api/compare/cursos:", err.message);
+        res.status(400).json({ error: err.message });
     }
 });
 

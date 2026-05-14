@@ -7,12 +7,10 @@ if exist "%NODE_LOCAL%\node.exe" (
 ) else (
     set "PATH=C:\Users\Departamento\nodejs\node-v22.14.0-win-x64;%PATH%"
 )
-REM Broker MQTT externo (mismo que el firmware)
-set "MQTT_BROKER=mqtt://broker.hivemq.com"
-set "MQTT_PORT=1883"
-set "USE_INTERNAL_BROKER=false"
+REM Lee configuracion de ..\.env si existe (MQTT_BROKER, MQTT_PORT, etc).
+REM Si no hay .env, el backend usa defaults (broker.hivemq.com).
 cd /d %~dp0..\backend
-echo Arrancando backend (MQTT: broker.hivemq.com)...
+echo Arrancando backend (modo local, sin Docker)...
 node src\index.js
 if %ERRORLEVEL% NEQ 0 (
     echo.

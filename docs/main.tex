@@ -1,0 +1,315 @@
+\documentclass[11pt,a4paper]{article}
+
+% ----- PAQUETES ESENCIALES Y CODIFICACIÓN -----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc} 
+\usepackage{lmodern}     
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[table]{xcolor} 
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[skins,breakable]{tcolorbox}
+\usepackage{hyperref}
+\usepackage{fontawesome5}
+\usepackage{parskip} 
+
+% Tipografía moderna
+\renewcommand{\familydefault}{\sfdefault}
+
+% Configuración de márgenes
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+% ----- PALETA DE COLORES CORPORATIVA -----
+\definecolor{CorpDark}{HTML}{0F172A}    % Azul oscuro
+\definecolor{CorpBlue}{HTML}{2563EB}    % Azul vibrante
+\definecolor{CorpAccent}{HTML}{F97316}  % Naranja acento
+\definecolor{BgGray}{HTML}{F8FAFC}      % Gris muy claro para fondos
+\definecolor{TableHead}{HTML}{E2E8F0}   % Gris para cabeceras de tabla
+
+% ----- CONFIGURACIÓN DE ENLACES -----
+\hypersetup{
+    colorlinks=true,
+    linkcolor=CorpDark,
+    urlcolor=CorpBlue,
+    pdftitle={Memoria Técnica de Ingeniería - EduSoundMetrics}
+}
+
+% ----- ESTILOS DE TÍTULOS (MODERNOS) -----
+\titleformat{\section}
+  {\color{CorpDark}\Large\bfseries}
+  {\color{CorpBlue}\thesection.}{1em}{}
+  [\vspace{-0.2cm}\color{CorpBlue}\titlerule\vspace{0.2cm}]
+
+\titleformat{\subsection}
+  {\color{CorpDark}\large\bfseries}
+  {\color{CorpAccent}\thesubsection.}{1em}{}
+
+\titleformat{\subsubsection}
+  {\color{CorpDark}\normalsize\bfseries}
+  {\thesubsubsection.}{1em}{}
+
+% ----- ESTILOS DE CAJAS (TCOLORBOX) -----
+\newtcolorbox{InfoBox}[1][]{
+    enhanced, breakable, colback=BgGray, colframe=CorpBlue, boxrule=1pt,
+    arc=4pt, left=15pt, right=15pt, top=10pt, bottom=10pt,
+    drop fuzzy shadow, fonttitle=\bfseries\large, title=#1
+}
+
+\newtcolorbox{HighlightBox}{
+    enhanced, breakable, colback=CorpBlue!5!white, colframe=CorpBlue,
+    borderline west={4pt}{0pt}{CorpBlue}, sharp corners,
+    boxrule=0pt, left=15pt, right=15pt, top=10pt, bottom=10pt
+}
+
+% ----- CABECERA Y PIE DE PÁGINA -----
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{CorpBlue}\leaders\hrule height \headrulewidth\hfill}}
+\lhead{\color{CorpDark}\textbf{EduSoundMetrics} | Memoria de Ingeniería}
+\rhead{\color{CorpDark}CPIFP Los Enlaces}
+\cfoot{\color{CorpDark}\textbf{\thepage}}
+
+% ------------------ DOCUMENTO ------------------
+\begin{document}
+
+% --- PORTADA ---
+\begin{titlepage}
+    \pagecolor{CorpDark}
+    \color{white}
+    \centering
+    \vspace*{2cm}
+    
+    {\Huge\textcolor{CorpAccent}{\faBroadcastTower}}\par
+    \vspace{1cm}
+    {\scshape\Large CPIFP Los Enlaces \par}
+    \vspace{0.5cm}
+    {\large Departamento de Informática y Comunicaciones\par}
+    \vspace{3cm}
+    
+    {\Huge\bfseries EDUSOUND METRICS \par}
+    \vspace{0.5cm}
+    {\Large Sistema Distribuido de Monitorización Acústica IoT para Espacios Educativos \par}
+    
+    \vspace{2.5cm}
+    \begin{tcolorbox}[
+        colback=CorpDark!80!black, 
+        colframe=CorpBlue,         
+        coltext=white,             
+        width=0.85\textwidth, 
+        center, 
+        arc=8pt, 
+        boxrule=1.5pt,
+        boxsep=10pt
+    ]
+        \centering
+        \Large\textbf{Dossier Exhaustivo de Ingeniería y Resultados}\\
+        \vspace{0.4cm}
+        \large
+        \textcolor{CorpAccent}{\textbf{Fase I:}} Investigación y Análisis Cuasi-experimental\\[0.2cm]
+        \textcolor{CorpAccent}{\textbf{Fase II:}} Despliegue Tecnológico, Hardware y Arquitectura Software
+    \end{tcolorbox}
+    
+    \vfill
+    {\large \textbf{Equipo Investigador y Desarrollador:} \\ Profesores de Sistemas y Aplicaciones Informáticas \par}
+    \vspace{1cm}
+    {\large Zaragoza, \today \par}
+\end{titlepage}
+\nopagecolor 
+
+% --- ÍNDICE ---
+\tableofcontents
+\newpage
+
+% ------------------ SECCIÓN 1 ------------------
+\section{Introducción y Marco del Proyecto}
+
+El paradigma educativo de la Formación Profesional (FP) actual exige metodologías activas, aprendizaje basado en proyectos (ABP) y trabajo colaborativo. Estas dinámicas, esenciales para la adquisición de competencias profesionales, conllevan inevitablemente un aumento de la presión acústica en las aulas, lo que puede deteriorar significativamente el clima de aprendizaje y la salud laboral.
+
+\subsection{Justificación Normativa y Teórica}
+El control del confort acústico no es únicamente una cuestión de comodidad, sino un imperativo de salud pública y rendimiento cognitivo avalado por la literatura científica:
+
+\begin{HighlightBox}
+\textbf{\faBook\ Marco Científico y Estándares de Calidad}\\
+1. \textbf{Organización Mundial de la Salud (OMS, 2018):} Dictamina que niveles de exposición continua superiores a $55\text{ dB}$ en entornos de concentración afectan negativamente a la memoria a corto plazo y elevan los niveles de cortisol en estudiantes y docentes.\\
+2. \textbf{Normativa ISO 9241-6:} En la regulación ergonómica para entornos de trabajo, estipula que las tareas que requieren alta concentración intelectual (análogas a las prácticas de programación o sistemas en SMR) requieren un nivel de ruido de fondo máximo de \textbf{45 a 55 dB}.
+\end{HighlightBox}
+
+\subsection{Objetivos Generales de EduSoundMetrics}
+Bajo esta premisa nace el proyecto \textbf{EduSoundMetrics}, concebido con tres pilares fundamentales:
+\begin{enumerate}
+    \item \textbf{Análisis Sociológico:} Evaluar el impacto real del ruido en el grado medio de SMR (Sistemas Microinformáticos y Redes) mediante metodologías estadísticas.
+    \item \textbf{Ingeniería IoT:} Diseñar y desplegar una arquitectura de hardware y software de bajo coste, alta precisión y nulo mantenimiento para monitorizar la contaminación acústica.
+    \item \textbf{Metacognición y Autorregulación:} Proporcionar feedback visual en tiempo real al alumnado para fomentar la autorregulación del comportamiento grupal.
+\end{enumerate}
+
+\subsection{Bandas de Presión Sonora y Anclajes de Referencia}
+
+A falta de un sonómetro patrón Clase 1 o 2 (norma IEC 61672) que actúe como \textit{ground truth} durante el despliegue, se adoptó una estrategia de \textbf{validación contextual por bandas}: agrupar las lecturas en franjas amplias de aproximadamente 10 dB y contrastar cada banda con escenarios sonoros universalmente documentados en la literatura acústica (OMS 2018, ISO 1996-1, NIOSH y US EPA). Esta aproximación, frecuente en estudios de campo de bajo coste, aporta tres ventajas frente a una medición pretendidamente absoluta:
+
+\begin{itemize}
+    \item \textbf{Robustez frente a calibración imperfecta:} Los micrófonos MEMS digitales de bajo coste presentan tolerancias típicas de $\pm 3$ dB entre unidades del mismo modelo. Operar por bandas de 10 dB absorbe ese error sin invalidar la inferencia agregada.
+    \item \textbf{Inteligibilidad pedagógica:} Una escala anclada a un fenómeno cotidiano (biblioteca, conversación, tráfico) resulta inmediatamente comprensible para alumnado y profesorado sin formación acústica, alineándose con el pilar metacognitivo del proyecto.
+    \item \textbf{Detección de \textit{drift}:} Si una banda detectada es sistemáticamente incoherente con la referencia esperada (p.\,ej., un aula vacía a las 6:00\,h leyendo en banda \textit{conversación animada}), se identifica un sesgo de calibración o un foco de ruido eléctrico antes de extraer conclusiones erróneas.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\rowcolors{2}{white}{BgGray}
+\begin{tabularx}{\textwidth}{c l X l}
+\toprule
+\rowcolor{TableHead}
+\textbf{Banda dB(A)} & \textbf{Categoría} & \textbf{Referencia contextual conocida} & \textbf{Implicación} \\ \midrule
+0--20    & Umbral / inaudible        & Cámara anecoica; respiración a 1\,m                   & Nulo \\
+20--30   & Silencio profundo         & Dormitorio nocturno; susurro a 5\,m                   & Nulo \\
+30--40   & Silencio                  & Biblioteca; sala de lectura                           & Confort óptimo \\
+40--50   & Ambiente bajo             & Oficina silenciosa; aula vacía con HVAC activo        & Confort \\
+50--60   & Ambiente moderado         & Conversación normal a 1\,m; cafetería tranquila       & Aceptable \\
+60--70   & Ambiente elevado          & Conversación animada; tráfico urbano ligero           & Distracción cognitiva \\
+70--80   & Ambiente alto             & Aspiradora a 1\,m; calle concurrida                   & Fatiga, estrés \\
+80--90   & Ruido intenso             & Tráfico denso; secador de pelo                        & Riesgo auditivo si $>$8\,h \\
+90--100  & Ruido excesivo            & Cortacésped; motocicleta a 5\,m                       & Daño con exposición prolongada \\
+100--110 & Ruido peligroso           & Motosierra; concierto en directo                      & Daño rápido \\
+110--120 & Ruido crítico             & Sirena de emergencia próxima; trueno cercano          & Dolor auditivo \\
+$>$120   & Umbral del dolor          & Despegue de avión a 50\,m                             & Daño inmediato \\ \bottomrule
+\end{tabularx}
+\caption{Bandas de presión sonora con anclajes contextuales (síntesis de OMS 2018, ISO 1996-1 y NIOSH). Las referencias se citan a su distancia típica de medición.}
+\end{table}
+
+\subsubsection{Aplicación operativa en el \textit{dashboard}}
+El \textit{backend} de EduSoundMetrics traduce internamente cada lectura instantánea y cada $L_{eq}$ (nivel sonoro continuo equivalente) por franja horaria a su banda correspondiente. La banda objetivo definida para una clase teórica de SMR es \textbf{40--55 dB(A)} (transición \textit{ambiente bajo} $\rightarrow$ \textit{ambiente moderado}), coherente tanto con ISO 9241-6 como con las recomendaciones de la OMS 2018. Toda lectura sostenida en bandas $\geq 60$ dB(A) durante actividades de concentración dispara la alerta visual del nodo.
+
+\subsubsection{Validación cruzada por extremos del espectro}
+Durante el despliegue se ejecutaron sesiones de validación sometiendo el aula a estímulos sonoros en los extremos opuestos del espectro audible cotidiano:
+
+\begin{enumerate}
+    \item \textbf{Extremo inferior:} aula vacía con sistema de climatización activo y sin actividad humana. Banda esperada según literatura: \textbf{35--45 dB(A)}. La mediana observada en los siete nodos del aula testigo cae dentro del intervalo previsto, con dispersión inter-nodo $\leq 3$ dB.
+    \item \textbf{Extremo superior:} fuente sonora controlada emitiendo en \textit{fortissimo} sostenido durante una ventana de diez minutos, con el aula cerrada y los nodos perimetrales a 4--6\,m de la fuente. Banda esperada en perímetro: \textbf{70--85 dB(A)} aplicando atenuación geométrica ($-6$ dB por duplicación de distancia). Banda observada en pico ($p_{99}$ del \textit{peak\_level}): dentro del intervalo previsto.
+\end{enumerate}
+
+La concordancia de las medianas con las bandas previstas en ambos extremos constituye la mejor evidencia disponible de que el sistema, en ausencia de sonómetro patrón, opera dentro de la tolerancia útil para los fines analíticos y pedagógicos del proyecto. Esta validación bipolar se planifica reiterar trimestralmente como rutina de mantenimiento preventivo, registrando cualquier desviación entre banda esperada y banda observada en el \textit{log} de calibración del despliegue.
+
+% ------------------ SECCIÓN 2 ------------------
+\section{Fase I: Estudio Clínico Cuasi-experimental}
+
+Antes de cometer recursos en el despliegue de infraestructura, se requería validación empírica. Se diseñó un estudio cuasi-experimental para contrastar la percepción acústica y la calidad educativa entre un entorno no monitorizado y uno asistido por tecnología.
+
+\subsection{Diseño Metodológico de la Muestra}
+Se estructuró una muestra de $N=43$ estudiantes de primer curso de SMR, divididos por turnos para aislar las variables de intervención:
+\begin{itemize}
+    \item \textbf{Grupo Control (n=24):} Alumnado de 1º SMR Turno Diurno (1SMRD). Se sometieron a encuestas de calidad sonora en sus clases habituales sin intervención externa.
+    \item \textbf{Grupo Experimental (n=19):} Alumnado de 1º SMR Turno Vespertino (1SMRV). En este grupo se implementó el primer prototipo del sistema, el cual aportaba una respuesta lumínica (LED) inmediata según los umbrales de ruido, fomentando la corrección conductual.
+\end{itemize}
+
+\subsection{Instrumentos de Medición y Tratamiento Estadístico}
+Se utilizó un cuestionario anónimo estructurado en escala de Likert (1-5). Dado que las muestras en ciencias sociales de grupos reducidos raramente siguen una distribución normal, el análisis paramétrico tradicional fue descartado. 
+
+En su lugar, los datos fueron procesados mediante la \textbf{Prueba U de Mann-Whitney} para muestras independientes. Este estadístico no paramétrico permitió confirmar matemáticamente que las diferencias entre las medianas de ambos grupos no se debían al azar ($p < 0.05$).
+
+\subsection{Resultados Detallados y Discusión}
+
+Los hallazgos del estudio confirmaron empíricamente el valor del proyecto. La simple presencia de un dispositivo de medición con feedback visual indujo una mejora notable en la percepción del aula.
+
+\begin{InfoBox}[Análisis Comparativo de Resultados (Grupo Control vs Experimental)]
+\textbf{1. Contención de Picos Acústicos Críticos}\\
+Al consultar por la percepción de un nivel de ruido "Alto", el Grupo Control reportó un alarmante \textbf{37,5\%}. En el Grupo Experimental, bajo la tutela del prototipo IoT, este índice colapsó al \textbf{15,8\%}. 
+
+\textbf{2. Aumento del Confort Sonoro}\\
+La percepción de un ambiente acústico "Bajo" (óptimo para el estudio) sufrió un incremento exponencial, pasando de un marginal \textbf{4,2\%} en el grupo diurno a un sólido \textbf{26,3\%} en el grupo vespertino.
+
+\textbf{3. Impacto en la Fluidez Docente}\\
+Uno de los factores de mayor estrés docente son las interrupciones para pedir silencio. El grupo experimental arrojó una caída estadísticamente significativa en la interrupción de las presentaciones de contenidos por parte del profesorado.
+\end{InfoBox}
+
+% ------------------ SECCIÓN 3 ------------------
+\section{Fase II: Ingeniería Hardware y Despliegue Eléctrico}
+
+El éxito de la Fase I dio luz verde al despliegue masivo. Sin embargo, trasladar un prototipo de laboratorio a una infraestructura permanente en techos de aulas reales presentó formidables desafíos de ingeniería eléctrica.
+
+\subsection{El Reto de la Caída de Tensión (Voltage Drop)}
+Los dispositivos IoT (M5Stack Atom Echo) operan a $5\text{V DC}$. Intentar distribuir $5\text{V}$ desde una fuente centralizada a través de decenas de metros de cable por el falso techo es eléctricamente inviable debido a la resistencia del cobre, descrita por la Ley de Pouillet:
+
+$$ R = \rho \cdot \frac{L}{S} $$
+
+Para una tirada de $50\text{m}$ con cable de $1.5\text{mm}^2$ y una carga de $2\text{A}$, la caída sería superior a $1.1\text{V}$, entregando apenas $3.9\text{V}$ a los dispositivos, lo cual provocaría reinicios continuos (Brown-out resets). Para mitigar este efecto, se adoptó una topología industrial de transmisión a alta tensión y baja corriente.
+
+\subsection{Fuente de Alimentación en Cabecera (Phoenix Contact)}
+El suministro eléctrico troncal se confió a hardware de grado industrial. Concretamente, se instaló en el cuadro de control una fuente de alimentación conmutada primaria para montaje en carril DIN, capaz de soportar las exigencias de un entorno operativo 24/7 sin degradación.
+
+\begin{table}[h]
+\centering
+\rowcolors{2}{white}{BgGray}
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\rowcolor{TableHead}
+\multicolumn{2}{c}{\textbf{Hoja Técnica: Phoenix Contact ESSENTIAL POWER (Ref. 1394764)}} \\ \midrule
+\textbf{Modelo / Part Number} & PS-EE-2G/1AC/24DC/60W/SC \\
+\textbf{Tensión de Entrada} & Rango universal 100 V AC \dots 240 V AC (Monofásico) \\
+\textbf{Tensión de Salida} & \textbf{24 V DC} (Ajustable de 24 V a 28 V DC) \\
+\textbf{Corriente Máxima} & 2.5 A \\
+\textbf{Potencia Nominal} & \textbf{60 W} \\
+\textbf{Eficiencia} & $89\%$ (a 230 V AC) \\
+\textbf{Protecciones Activas} & A prueba de cortocircuitos, funcionamiento en vacío continuo y varistor contra transitorios. \\
+\textbf{Tiempo Medio Entre Fallos (MTBF)} & $> 2.800.000$ horas (a $25^\circ C$) \\
+\textbf{Dimensiones (An x Al x Pr)} & $33\text{ mm} \times 90\text{ mm} \times 100\text{ mm}$ \\ \bottomrule
+\end{tabularx}
+\caption{Especificaciones operativas de la fuente troncal del bus de 24V.}
+\end{table}
+
+Dado que cada nodo (ESP32) consume aproximadamente $2.5\text{W}$ picos, los $60\text{W}$ de esta fuente garantizan energía de sobra para operar hasta 20 nodos simultáneos en el mismo bus troncal, trabajando holgadamente al 25\% de su capacidad nominal, maximizando su vida útil.
+
+\subsection{Nodos Step-Down y Bypass del Protocolo USB-C}
+En cada punto de sensorización del techo, se implementó una topología de red en paralelo. Mediante conectores WAGO de derivación, se "pincha" el bus de 24V. 
+
+\begin{enumerate}
+    \item \textbf{Etapa de Protección:} Derivación hacia un portafusibles THT con un fusible de cristal rápido de $1\text{A}$ por placa.
+    \item \textbf{Etapa de Regulación (Traco Power TSR 1-2450):} Este regulador de conmutación (Step-Down) convierte eficientemente ($92\%$) los 24V del bus a $5\text{V}$ estables, sin requerir disipadores térmicos.
+    \item \textbf{Bypass Físico (Hardware Hack):} El M5Stack cuenta con un puerto USB-C que requiere negociación en los pines CC1/CC2 para abrir paso a la corriente. Para evitar la soldadura compleja de resistencias de Pull-up SMD en placas perforadas, se inyectan los $+5\text{V}$ y GND directamente a los terminales internos VBUS de un latiguillo "pigtail" macho, eludiendo la negociación pasiva y forzando el arranque seguro del SoC.
+\end{enumerate}
+
+% ------------------ SECCIÓN 4 ------------------
+\section{Arquitectura de Software y Telemetría}
+
+La captación eléctrica carece de utilidad sin un tratamiento de datos avanzado. La arquitectura software de EduSoundMetrics es un sistema distribuido Full-Stack.
+
+\subsection{Firmware del Microcontrolador (Edge Computing)}
+El cerebro de cada nodo es un ESP32-S3 programado en C++ mediante PlatformIO.
+\begin{itemize}
+    \item \textbf{Captación I2S:} El micrófono MEMS digital captura el sonido ambiental.
+    \item \textbf{Procesamiento Digital de Señal (DSP):} El microcontrolador ejecuta una Transformada Rápida de Fourier (FFT) y aplica ponderación A (dBA) para simular la sensibilidad auditiva humana.
+    \item \textbf{Feedback nativo:} Activa el LED RGB integrado.
+\end{itemize}
+
+\subsection{Infraestructura de Transporte y Dashboard}
+Los nodos publican telemetría JSON vía \textbf{MQTT} a un broker Mosquitto. En el lado del servidor, una aplicación \textbf{Node.js} ingiere los datos, los persiste en \textbf{SQLite} y los sirve a un cliente \textbf{Next.js} (React) que renderiza gráficas históricas en tiempo real para el equipo docente.
+
+% ------------------ SECCIÓN 5 ------------------
+\section{Evaluación Crítica de Escalabilidad (Roadmap)}
+
+Con el sistema validado, el departamento documenta dos posibles líneas arquitectónicas para la expansión institucional:
+
+\begin{table}[h]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{@{}p{3.5cm}p{6.5cm}p{6.5cm}@{}}
+\toprule
+\textbf{Parámetro} & \textbf{Opción A: Malla Acústica (M5Stack Echo)} & \textbf{Opción B: Consola Central (M5Stack Core2)} \\ \midrule
+\textbf{Arquitectura Fija} & 6 sensores perimetrales por aula en falso techo. & 1 dispositivo central ubicado en la mesa del docente. \\
+\textbf{Granularidad de Datos} & \textbf{Extrema.} Permite "mapas de calor acústicos". & \textbf{Media.} Ofrece un promedio ambiental de la sala. \\
+\textbf{Complejidad Técnica} & \textbf{Alta.} Exige bus troncal 24V (Phoenix Contact), nodos de regulación y cableado. & \textbf{Mínima.} Despliegue Plug\&Play alimentado vía USB en el puesto del profesor. \\
+\textbf{Mantenibilidad} & 6 puntos críticos de fallo de hardware. & 1 único punto de hardware sustituible. \\
+\textbf{Experiencia (UI)} & Dependencia del Dashboard web para visualización. & Integra \textbf{pantalla TFT táctil} in-situ. \\ \bottomrule
+\end{tabular}
+}
+\end{table}
+
+\section{Conclusión Final}
+
+El proyecto ha superado la transición de concepto teórico a producto de ingeniería. Los datos sugieren que la \textbf{Opción B (Nodo centralizado Core2)} es el paradigma ideal para despliegue masivo por su baja fricción de instalación, entregando la mayor parte del valor analítico. La \textbf{Opción A (Red 24V)} permanecerá como infraestructura demostradora tecnológica para el alumnado técnico.
+
+\end{document}

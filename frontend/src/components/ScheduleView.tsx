@@ -6,7 +6,9 @@ import {
     ResponsiveContainer, ReferenceLine, Cell,
 } from "recharts";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL =
+    process.env.NEXT_PUBLIC_API_URL ??
+    (typeof window !== "undefined" ? "" : "http://localhost:3001");
 
 interface SlotStats {
     readings: number;
@@ -101,13 +103,24 @@ function StatBox({ label, value, unit, color }: { label: string; value: string |
 interface ScheduleViewProps {
     roomId: string;
     onBack: () => void;
+    initialDate?: string | null; // YYYY-MM-DD, si viene del calendario
 }
 
-export default function ScheduleView({ roomId, onBack }: ScheduleViewProps) {
+// Convierte "YYYY-MM-DD" en offset relativo a hoy (dias de diferencia)
+function dateStrToOffset(dateStr: string): number {
+    const target = new Date(dateStr + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+export default function ScheduleView({ roomId, onBack, initialDate }: ScheduleViewProps) {
     const [data, setData] = useState<ScheduleData | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-    const [dateOffset, setDateOffset] = useState(0); // 0 = today, -1 = yesterday, etc.
+    const [dateOffset, setDateOffset] = useState(() =>
+        initialDate ? dateStrToOffset(initialDate) : 0
+    );
 
     const dateStr = (() => {
         const d = new Date();

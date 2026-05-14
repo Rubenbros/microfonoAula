@@ -5,6 +5,7 @@ import RoomCard from "@/components/RoomCard";
 import RoomDetailView from "@/components/RoomDetailView";
 import MicDetailView from "@/components/MicDetailView";
 import ScheduleView from "@/components/ScheduleView";
+import ComparatorView from "@/components/ComparatorView";
 
 export default function HomePage() {
     const {
@@ -13,15 +14,22 @@ export default function HomePage() {
         view,
         selectedRoom,
         selectedMic,
+        selectedDate,
         history,
         loading,
         selectRoom,
         selectMic,
         selectSchedule,
+        selectCompare,
         goBack,
         getSparkline,
         getRoomData,
     } = useNoiseData();
+
+    // Vista comparador
+    if (view === "compare") {
+        return <ComparatorView onBack={goBack} />;
+    }
 
     // Vista de horario por franjas
     if (view === "schedule" && selectedRoom) {
@@ -29,6 +37,7 @@ export default function HomePage() {
             <ScheduleView
                 roomId={selectedRoom}
                 onBack={goBack}
+                initialDate={selectedDate}
             />
         );
     }
@@ -57,7 +66,7 @@ export default function HomePage() {
                 roomData={roomData}
                 onSelectMic={(micId) => selectMic(selectedRoom, micId)}
                 onBack={goBack}
-                onSchedule={() => selectSchedule(selectedRoom)}
+                onSchedule={(date) => selectSchedule(selectedRoom, date)}
             />
         );
     }
@@ -95,6 +104,15 @@ export default function HomePage() {
                             {roomsAboveThreshold} {roomsAboveThreshold === 1 ? "aula" : "aulas"} con ruido alto
                         </div>
                     )}
+                    <button
+                        onClick={selectCompare}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18M7 15l4-4 4 4 6-6" />
+                        </svg>
+                        Comparador
+                    </button>
                 </div>
             </div>
 

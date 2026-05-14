@@ -1,0 +1,12 @@
+{
+  "name": "classroom-noise-monitor-deck",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "pptxgenjs": "^3.12.0"
+  }
+}

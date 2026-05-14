@@ -1,0 +1,32 @@
+# ============================================
+# Caddy - Reverse proxy + Basic Auth
+# ============================================
+# Escucha en 80 internamente. Cloudflared se encarga de HTTPS publico.
+# Todo el trafico pasa por basic auth (usuario + hash bcrypt en .env).
+
+:80 {
+    # ---- Basic Auth: protege todo el sitio ----
+    basic_auth {
+        {$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+    }
+
+    # ---- WebSocket: /ws -> backend:3002 ----
+    @ws {
+        path /ws /ws/*
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @ws backend:3002
+
+    # ---- API REST: /api/* -> backend:3001 ----
+    reverse_proxy /api/* backend:3001
+
+    # ---- Frontend: todo lo demas -> Next.js ----
+    reverse_proxy frontend:3000
+
+    # ---- Logs ----
+    log {
+        output stdout
+        format console
+    }
+}

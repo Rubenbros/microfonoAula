@@ -1,32 +1,19 @@
 "use client";
 
-import { RoomSummary, MicReading } from "@/lib/useNoiseData";
+import { useState } from "react";
+import { RoomSummary } from "@/lib/useNoiseData";
+import DayCalendar from "./DayCalendar";
+import RoomFloorplan from "./RoomFloorplan";
 
 interface RoomDetailViewProps {
     roomData: RoomSummary | null;
     onSelectMic: (micId: string) => void;
     onBack: () => void;
-    onSchedule?: () => void;
+    onSchedule?: (date?: string) => void;
 }
 
 function formatRoomName(room: string): string {
     return room.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function formatMicName(mic: string): string {
-    return mic.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function getMicColor(db: number): string {
-    if (db < 50) return "bg-green-500";
-    if (db < 70) return "bg-yellow-500";
-    return "bg-red-500";
-}
-
-function getMicBorderColor(db: number): string {
-    if (db < 50) return "border-green-500/50";
-    if (db < 70) return "border-yellow-500/50";
-    return "border-red-500/50";
 }
 
 function getMicTextColor(db: number): string {
@@ -41,55 +28,9 @@ function getNoiseLabel(db: number): string {
     return "Ruidoso";
 }
 
-function getBgGradient(db: number): string {
-    if (db < 50) return "from-green-500/10 to-green-500/5";
-    if (db < 70) return "from-yellow-500/10 to-yellow-500/5";
-    return "from-red-500/10 to-red-500/5";
-}
-
-// Posiciones 2x3 para 6 micros en el mapa del aula
-const MIC_POSITIONS = [
-    { row: 0, col: 0 }, // mic_01
-    { row: 0, col: 1 }, // mic_02
-    { row: 1, col: 0 }, // mic_03
-    { row: 1, col: 1 }, // mic_04
-    { row: 2, col: 0 }, // mic_05
-    { row: 2, col: 1 }, // mic_06
-];
-
-/** Componente boton de microfono reutilizable */
-function MicButton({ mic, onClick }: { mic: MicReading; onClick: () => void }) {
-    const isOnline = mic.online !== false;
-    const dotColor = isOnline ? getMicColor(mic.db) : "bg-gray-600";
-    const borderColor = isOnline ? getMicBorderColor(mic.db) : "border-gray-600/50";
-    const textColor = isOnline ? getMicTextColor(mic.db) : "text-gray-600";
-
-    return (
-        <button
-            onClick={onClick}
-            className={`
-                flex flex-col items-center gap-2 p-4 rounded-xl border-2
-                ${borderColor} bg-gray-900/50
-                hover:scale-105 hover:bg-gray-800/50 transition-all duration-200
-                cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500
-            `}
-        >
-            <div className={`w-12 h-12 rounded-full ${dotColor} ${isOnline ? "animate-pulse" : ""} shadow-lg flex items-center justify-center`}>
-                <svg className="w-6 h-6 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4-4h8m-4-12a3 3 0 00-3 3v4a3 3 0 006 0V7a3 3 0 00-3-3z" />
-                </svg>
-            </div>
-            <span className={`text-xl font-bold tabular-nums ${textColor}`}>
-                {isOnline ? `${mic.db.toFixed(1)}` : "--"} <span className="text-xs">dB</span>
-            </span>
-            <span className="text-xs text-gray-500">
-                {formatMicName(mic.mic)}
-            </span>
-        </button>
-    );
-}
-
 export default function RoomDetailView({ roomData, onSelectMic, onBack, onSchedule }: RoomDetailViewProps) {
+    const [showCalendar, setShowCalendar] = useState(false);
+
     if (!roomData) {
         return (
             <div className="text-center py-20 text-gray-500">
@@ -151,15 +92,38 @@ export default function RoomDetailView({ roomData, onSelectMic, onBack, onSchedu
                     </div>
                     <div className="flex items-center gap-4">
                         {onSchedule && (
-                            <button
-                                onClick={onSchedule}
-                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors text-sm font-medium"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                Horario
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => onSchedule()}
+                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors text-sm font-medium"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    Horario (hoy)
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowCalendar(v => !v)}
+                                        className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition-colors text-sm font-medium text-gray-300"
+                                        title="Seleccionar día (heatmap)"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 2v4m8-4v4M3 10h18M5 6h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
+                                        </svg>
+                                    </button>
+                                    {showCalendar && (
+                                        <DayCalendar
+                                            roomId={roomData.room}
+                                            onSelect={(date) => {
+                                                setShowCalendar(false);
+                                                onSchedule(date);
+                                            }}
+                                            onClose={() => setShowCalendar(false)}
+                                        />
+                                    )}
+                                </div>
+                            </div>
                         )}
                         <div className="text-right">
                             <div className={`text-4xl font-bold ${roomColor} db-pulse`}>
@@ -171,169 +135,43 @@ export default function RoomDetailView({ roomData, onSelectMic, onBack, onSchedu
                 </div>
             </div>
 
-            {/* Dos modelos lado a lado */}
-            <div className={`grid ${hasCentral ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"} gap-6 mb-6`}>
+            {/* Plano del aula unificado */}
+            <div className="mb-4">
+                <RoomFloorplan roomId={roomData.room} mics={roomData.mics} onSelectMic={onSelectMic} />
+            </div>
 
-                {/* MODELO 1: Distribuido (6 micros) */}
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 className="text-sm font-medium text-blue-400 uppercase tracking-wider">
-                                Modelo Distribuido
-                            </h3>
-                            <p className="text-xs text-gray-500 mt-1">6 microfonos ATOM Echo</p>
-                        </div>
-                        {onlineDistributed.length > 0 && (
-                            <div className="text-right">
-                                <div className={`text-2xl font-bold ${getMicTextColor(distributedAvg)}`}>
-                                    {distributedAvg.toFixed(1)} <span className="text-sm">dB</span>
-                                </div>
-                                <div className="text-xs text-gray-500">media</div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Mapa del aula 2x3 */}
-                    <div className="relative bg-gray-800/50 border-2 border-gray-700 rounded-xl p-6">
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gray-700 px-3 py-0.5 rounded-full text-xs text-gray-400">
-                            Pizarra
-                        </div>
-
-                        <div className="grid grid-rows-3 grid-cols-2 gap-4">
-                            {MIC_POSITIONS.map((pos, index) => {
-                                const mic = distributedMics[index];
-                                if (!mic) return <div key={index} />;
-                                return (
-                                    <MicButton
-                                        key={mic.mic}
-                                        mic={mic}
-                                        onClick={() => onSelectMic(mic.mic)}
-                                    />
-                                );
-                            })}
-                        </div>
-
-                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gray-700 px-3 py-0.5 rounded-full text-xs text-gray-400">
-                            Puerta
-                        </div>
-                    </div>
-
-                    {/* Stats distribuido */}
-                    <div className="grid grid-cols-3 gap-3 mt-5">
-                        <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                            <p className="text-xs text-gray-500">Media</p>
-                            <p className="text-lg font-bold text-blue-400">
-                                {onlineDistributed.length > 0 ? `${distributedAvg.toFixed(1)}` : "--"} <span className="text-xs">dB</span>
-                            </p>
-                        </div>
-                        <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                            <p className="text-xs text-gray-500">Pico</p>
-                            <p className="text-lg font-bold text-red-400">
-                                {onlineDistributed.length > 0 ? `${distributedPeak.toFixed(1)}` : "--"} <span className="text-xs">dB</span>
-                            </p>
-                        </div>
-                        <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                            <p className="text-xs text-gray-500">Online</p>
-                            <p className="text-lg font-bold text-green-400">
-                                {onlineDistributed.length}/{distributedMics.length}
-                            </p>
-                        </div>
-                    </div>
+            {/* Stats rapidas */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+                    <p className="text-xs text-blue-400 uppercase">Distribuido</p>
+                    <p className={`text-xl font-bold ${onlineDistributed.length > 0 ? getMicTextColor(distributedAvg) : "text-gray-600"}`}>
+                        {onlineDistributed.length > 0 ? distributedAvg.toFixed(1) : "--"} <span className="text-xs">dB</span>
+                    </p>
+                    <p className="text-[10px] text-gray-500">media {onlineDistributed.length}/{distributedMics.length}</p>
                 </div>
-
-                {/* MODELO 2: Central (Core2) */}
                 {hasCentral && (
-                    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 className="text-sm font-medium text-purple-400 uppercase tracking-wider">
-                                    Modelo Central
-                                </h3>
-                                <p className="text-xs text-gray-500 mt-1">1 microfono M5Stack Core2</p>
-                            </div>
-                            {centralOnline && (
-                                <div className="text-right">
-                                    <div className={`text-2xl font-bold ${getMicTextColor(centralMic.db)}`}>
-                                        {centralMic.db.toFixed(1)} <span className="text-sm">dB</span>
-                                    </div>
-                                    <div className="text-xs text-gray-500">lectura</div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Representacion visual del aula con micro central */}
-                        <div className="relative bg-gray-800/50 border-2 border-gray-700 rounded-xl p-6 flex flex-col items-center justify-center"
-                             style={{ minHeight: "320px" }}>
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gray-700 px-3 py-0.5 rounded-full text-xs text-gray-400">
-                                Pizarra
-                            </div>
-
-                            {/* Micro central grande en el centro */}
-                            <button
-                                onClick={() => onSelectMic("mic_central")}
-                                className={`
-                                    flex flex-col items-center gap-3 p-8 rounded-2xl border-2
-                                    ${centralOnline ? getMicBorderColor(centralMic.db) : "border-gray-600/50"}
-                                    bg-gradient-to-b ${centralOnline ? getBgGradient(centralMic.db) : "from-gray-600/10 to-gray-600/5"}
-                                    hover:scale-105 transition-all duration-200
-                                    cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500
-                                `}
-                            >
-                                {/* Circulo grande con icono */}
-                                <div className={`w-24 h-24 rounded-full ${centralOnline ? getMicColor(centralMic.db) : "bg-gray-600"} ${centralOnline ? "animate-pulse" : ""} shadow-xl flex items-center justify-center`}>
-                                    <svg className="w-12 h-12 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4-4h8m-4-12a3 3 0 00-3 3v4a3 3 0 006 0V7a3 3 0 00-3-3z" />
-                                    </svg>
-                                </div>
-
-                                {/* Valor dB */}
-                                <span className={`text-4xl font-bold tabular-nums ${centralOnline ? getMicTextColor(centralMic.db) : "text-gray-600"}`}>
-                                    {centralOnline ? `${centralMic.db.toFixed(1)}` : "--"} <span className="text-lg">dB</span>
-                                </span>
-
-                                {/* Label */}
-                                <span className="text-sm text-gray-400">
-                                    Micro Central
-                                </span>
-
-                                {centralOnline && (
-                                    <span className={`text-xs ${getMicTextColor(centralMic.db)}`}>
-                                        {getNoiseLabel(centralMic.db)}
-                                    </span>
-                                )}
-                            </button>
-
-                            {/* Indicador de posicion */}
-                            <p className="text-xs text-gray-600 mt-4">Centro del aula</p>
-
-                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gray-700 px-3 py-0.5 rounded-full text-xs text-gray-400">
-                                Puerta
-                            </div>
-                        </div>
-
-                        {/* Stats central */}
-                        <div className="grid grid-cols-3 gap-3 mt-5">
-                            <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                                <p className="text-xs text-gray-500">Nivel</p>
-                                <p className="text-lg font-bold text-purple-400">
-                                    {centralOnline ? `${centralMic.db.toFixed(1)}` : "--"} <span className="text-xs">dB</span>
-                                </p>
-                            </div>
-                            <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                                <p className="text-xs text-gray-500">Pico</p>
-                                <p className="text-lg font-bold text-red-400">
-                                    {centralOnline ? `${centralMic.peak.toFixed(1)}` : "--"} <span className="text-xs">dB</span>
-                                </p>
-                            </div>
-                            <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                                <p className="text-xs text-gray-500">Estado</p>
-                                <p className={`text-lg font-bold ${centralOnline ? "text-green-400" : "text-red-400"}`}>
-                                    {centralOnline ? "Online" : "Offline"}
-                                </p>
-                            </div>
-                        </div>
+                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+                        <p className="text-xs text-purple-400 uppercase">Central (C)</p>
+                        <p className={`text-xl font-bold ${centralOnline ? getMicTextColor(centralMic.db) : "text-gray-600"}`}>
+                            {centralOnline ? centralMic.db.toFixed(1) : "--"} <span className="text-xs">dB</span>
+                        </p>
+                        <p className="text-[10px] text-gray-500">{centralOnline ? "online" : "offline"}</p>
                     </div>
                 )}
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+                    <p className="text-xs text-gray-500 uppercase">Pico máximo</p>
+                    <p className="text-xl font-bold text-red-400">
+                        {Math.max(distributedPeak, centralOnline ? centralMic.peak : 0).toFixed(1)} <span className="text-xs">dB</span>
+                    </p>
+                    <p className="text-[10px] text-gray-500">últimos 5s</p>
+                </div>
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+                    <p className="text-xs text-gray-500 uppercase">Total online</p>
+                    <p className="text-xl font-bold text-green-400">
+                        {roomData.onlineCount}/{roomData.micCount}
+                    </p>
+                    <p className="text-[10px] text-gray-500">mics activos</p>
+                </div>
             </div>
 
             {/* Comparativa entre modelos */}
