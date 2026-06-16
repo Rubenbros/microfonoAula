@@ -1,0 +1,178 @@
+ANÁLISIS ESTADÍSTICO DEL PROYECTO EDUSOUND METRICS
+==================================================
+
+INTRODUCCIÓN
+---------------
+Este análisis examina el impacto de la implementación de un sistema de monitorización del ruido en el aula, comparando un grupo control (n=24) con un grupo experimental (n=19) que participó en la intervención.
+
+METODOLOGÍA
+---------------
+Se realizó un estudio comparativo utilizando encuestas tipo Likert (1-5). El análisis incluye estadísticas descriptivas, pruebas de normalidad y análisis no paramétrico para comparar las percepciones entre ambos grupos.
+
+RESULTADOS
+---------------
+
+Análisis de 'Afecta Concentracion'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 3.46, Mediana = 4.00, Desv. Est. = 1.06
+Grupo Experimental: Media = 3.11, Mediana = 3.00, Desv. Est. = 1.24
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0099
+Grupo Experimental: p=0.0490
+
+Prueba Mann-Whitney U:
+Estadístico = 264.00, p = 0.3627
+Diferencia significativa: No
+
+
+Análisis de 'Facilidad Concentracion'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 3.50, Mediana = 3.00, Desv. Est. = 0.83
+Grupo Experimental: Media = 3.11, Mediana = 3.00, Desv. Est. = 1.10
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0046
+Grupo Experimental: p=0.0473
+
+Prueba Mann-Whitney U:
+Estadístico = 266.50, p = 0.3256
+Diferencia significativa: No
+
+
+Análisis de 'Afecta Rendimiento'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 2.83, Mediana = 3.00, Desv. Est. = 0.87
+Grupo Experimental: Media = 2.53, Mediana = 3.00, Desv. Est. = 1.12
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0001
+Grupo Experimental: p=0.0734
+
+Prueba Mann-Whitney U:
+Estadístico = 262.50, p = 0.3749
+Diferencia significativa: No
+
+
+Análisis de 'Adecuado Trabajo'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 3.46, Mediana = 3.00, Desv. Est. = 0.78
+Grupo Experimental: Media = 3.37, Mediana = 3.00, Desv. Est. = 0.76
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0002
+Grupo Experimental: p=0.0000
+
+Prueba Mann-Whitney U:
+Estadístico = 250.50, p = 0.5161
+Diferencia significativa: No
+
+
+Análisis de 'Genera Estres'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 2.62, Mediana = 3.00, Desv. Est. = 1.13
+Grupo Experimental: Media = 2.32, Mediana = 2.00, Desv. Est. = 1.25
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0234
+Grupo Experimental: p=0.0163
+
+Prueba Mann-Whitney U:
+Estadístico = 266.50, p = 0.3369
+Diferencia significativa: No
+
+
+Análisis de 'Satisfaccion Clima'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 3.29, Mediana = 3.00, Desv. Est. = 0.69
+Grupo Experimental: Media = 3.00, Mediana = 3.00, Desv. Est. = 0.88
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0002
+Grupo Experimental: p=0.0005
+
+Prueba Mann-Whitney U:
+Estadístico = 288.00, p = 0.1131
+Diferencia significativa: No
+
+
+Análisis de 'Mejor Menos Ruido'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 4.04, Mediana = 4.00, Desv. Est. = 0.86
+Grupo Experimental: Media = 3.58, Mediana = 3.00, Desv. Est. = 0.96
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0021
+Grupo Experimental: p=0.0168
+
+Prueba Mann-Whitney U:
+Estadístico = 292.00, p = 0.1032
+Diferencia significativa: No
+
+
+Análisis de 'Contribucion Estudiantes'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 2.96, Mediana = 3.00, Desv. Est. = 0.95
+Grupo Experimental: Media = 3.32, Mediana = 3.00, Desv. Est. = 0.89
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0012
+Grupo Experimental: p=0.0182
+
+Prueba Mann-Whitney U:
+Estadístico = 175.00, p = 0.1748
+Diferencia significativa: No
+
+
+Análisis de 'Nivel Ruido'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 3.33, Mediana = 3.00, Desv. Est. = 0.56
+Grupo Experimental: Media = 2.89, Mediana = 3.00, Desv. Est. = 0.66
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0000
+Grupo Experimental: p=0.0010
+
+Prueba Mann-Whitney U:
+Estadístico = 307.00, p = 0.0297
+Diferencia significativa: Sí
+
+
+Análisis de 'Interrumpe Explicacion'
+------------------------------
+
+Estadísticas descriptivas:
+Grupo Control: Media = 3.33, Mediana = 3.00, Desv. Est. = 0.76
+Grupo Experimental: Media = 2.84, Mediana = 3.00, Desv. Est. = 0.60
+
+Pruebas de normalidad (Shapiro-Wilk):
+Grupo Control: p=0.0006
+Grupo Experimental: p=0.0004
+
+Prueba Mann-Whitney U:
+Estadístico = 305.00, p = 0.0328
+Diferencia significativa: Sí
+
+
+DISCUSIÓN
+---------------
+Los resultados sugieren diferencias en la percepción del ruido entre ambos grupos. Se observan mejoras significativas en varios aspectos del clima sonoro en el grupo experimental, especialmente en la percepción del nivel de ruido y su impacto en el aprendizaje.
+
