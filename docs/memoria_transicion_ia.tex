@@ -1,0 +1,254 @@
+% =============================================================================
+%  EduSoundMetrics - Memoria de transicion + propuesta de PC para IA
+%  Maximo 3 paginas. Compilar: pdflatex -shell-escape memoria_transicion_ia.tex (x2)
+% =============================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-tabla,es-noshorthands]{babel}
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage[skins,breakable]{tcolorbox}
+\usepackage{hyperref}
+\usepackage{fontawesome5}
+\usepackage{parskip}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows.meta,positioning,fit,backgrounds,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{eurosym}
+\usepackage{multicol}
+\usepackage{textcomp}
+
+\renewcommand{\familydefault}{\sfdefault}
+\geometry{top=1.7cm, bottom=1.6cm, left=2cm, right=2cm, headheight=14pt}
+\setlength{\columnsep}{0.7cm}
+
+% ----- PALETA -----
+\definecolor{CorpDark}{HTML}{0F172A}
+\definecolor{CorpBlue}{HTML}{2563EB}
+\definecolor{CorpAccent}{HTML}{F97316}
+\definecolor{BgGray}{HTML}{F8FAFC}
+\definecolor{TableHead}{HTML}{E2E8F0}
+\definecolor{dbgreen}{HTML}{22c55e}
+\definecolor{dbred}{HTML}{ef4444}
+
+\hypersetup{colorlinks=true, linkcolor=CorpDark, urlcolor=CorpBlue,
+  pdftitle={EduSoundMetrics - Transicion e IA}, pdfauthor={CPIFP Los Enlaces}}
+
+% ----- TITULOS (filete claramente DEBAJO del texto, sin tachar) -----
+\titleformat{\section}{\color{CorpDark}\large\bfseries}{\color{CorpBlue}\thesection.}{0.5em}{}
+  [\vspace{2pt}{\color{CorpBlue}\titlerule}]
+\titleformat{\subsection}{\color{CorpDark}\normalsize\bfseries}{\color{CorpAccent}\thesubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{0.6em}{0.32em}
+\titlespacing*{\subsection}{0pt}{0.45em}{0.2em}
+
+\newtcolorbox{KeyFinding}{enhanced, breakable, colback=CorpAccent!10, colframe=CorpAccent,
+  borderline west={3pt}{0pt}{CorpAccent}, sharp corners, boxrule=0pt,
+  left=9pt, right=9pt, top=4pt, bottom=4pt, fontupper=\small}
+\newtcolorbox{HighlightBox}{enhanced, breakable, colback=CorpBlue!5!white, colframe=CorpBlue,
+  borderline west={3pt}{0pt}{CorpBlue}, sharp corners, boxrule=0pt,
+  left=9pt, right=9pt, top=4pt, bottom=4pt, fontupper=\small}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{CorpBlue}\leaders\hrule height \headrulewidth\hfill}}
+\lhead{\color{CorpDark}\footnotesize\textbf{EduSoundMetrics} | De la prueba piloto a la analitica con IA}
+\rhead{\color{CorpDark}\footnotesize CPIFP Los Enlaces}
+\cfoot{\color{CorpDark}\footnotesize\textbf{\thepage}}
+\setlength{\parskip}{2pt}
+\setlength{\intextsep}{5pt}
+\setlength{\textfloatsep}{5pt}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{0pt}
+\captionsetup{font=footnotesize}
+\setlength{\parskip}{1.5pt}
+
+\begin{document}
+
+% ----- CABECERA / TITULO COMPACTO -----
+\begin{tcolorbox}[colback=CorpDark, colframe=CorpDark, coltext=white, arc=4pt, boxsep=4pt,
+  left=12pt, right=12pt, top=9pt, bottom=9pt]
+  {\LARGE\bfseries\textcolor{CorpAccent}{\faBroadcastTower}\hspace{0.4em}EduSoundMetrics}\\[2pt]
+  {\normalsize Del piloto con son\'ometros a una plataforma IoT con anal\'itica e IA}\\[3pt]
+  {\footnotesize CPIFP Los Enlaces \textbullet\ Dpto. de Inform\'atica y Comunicaciones \textbullet\ Familia SMR \textbullet\ Zaragoza, \today}
+\end{tcolorbox}
+
+\vspace{3pt}
+
+% =============================================================================
+% 1. ORIGEN  (~60%)
+% =============================================================================
+\section{El origen: el estudio EduSoundMetrics (EduCaixa)}
+
+La presente memoria documenta la \textbf{evoluci\'on} de \emph{EduSoundMetrics}, una iniciativa nacida en el CPIFP Los Enlaces para analizar y mejorar el \textbf{clima sonoro} en las aulas de Formaci\'on Profesional. El proyecto parte de una constataci\'on did\'actica: en los ciclos de la familia de Inform\'atica y Comunicaciones (Sistemas Microinform\'aticos y Redes, SMR) el ruido durante las tareas pr\'acticas, colaborativas y cooperativas degrada la concentraci\'on del alumnado, interrumpe las explicaciones del docente y afecta a su bienestar. La hip\'otesis de trabajo se apoya en evidencia externa: la \textbf{OMS (2018)} se\~nala que niveles superiores a \textbf{55\,dB} perjudican la concentraci\'on y el rendimiento, y la norma \textbf{ISO\,9241-6} recomienda \textbf{45--55\,dB} para entornos de trabajo.
+
+\subsection{Marco pedag\'ogico y objetivos}
+En su formulaci\'on original ---presentada a la convocatoria \textbf{EduCaixa}--- el proyecto se vincul\'o a dos gu\'ias: \emph{Metacognici\'on y Aprendizaje Regulado} (el alumnado reflexiona sobre c\'omo el entorno sonoro afecta a su propio aprendizaje) y \emph{Comportamiento en las Escuelas} (el son\'ometro como herramienta de gesti\'on de aula para un ambiente ordenado). Se definieron tres objetivos medibles, base de la futura plataforma:
+
+\begin{itemize}[leftmargin=1.3em, itemsep=2pt, topsep=2pt]
+  \item \textbf{OBJ1 --- Medici\'on}: registrar dB m\'aximos y promedio (umbrales de consecuci\'on 55/60/65\,dB).
+  \item \textbf{OBJ2 --- Satisfacci\'on}: \% de alumnado y reducci\'on de la percepci\'on de ruido e interrupciones.
+  \item \textbf{OBJ3 --- Despliegue}: n.\textsuperscript{o} de grupos cubiertos, con vocaci\'on de extenderse a otras familias (Actividades Comerciales y V\'ideo DJ y Sonido) y generar \emph{est\'andares replicables} para otros centros.
+\end{itemize}
+
+\subsection{Metodolog\'ia y resultados del piloto}
+Se dise\~n\'o un estudio \textbf{cuasi-experimental} con dos grupos del m\'odulo de Aplicaciones Ofim\'aticas: un \textbf{grupo control} (1.\textordmasculine\ SMR diurno, 1SMRD, \emph{n}=24) y un \textbf{grupo experimental} (1.\textordmasculine\ SMR vespertino, 1SMRV, \emph{n}=19) que us\'o la intervenci\'on. La instrumentaci\'on fueron \textbf{4 son\'ometros digitales de pared} (\textasciitilde80\,\euro/ud, 320\,\euro\ en total) que ofrec\'ian \emph{feedback instant\'aneo} por color e icono. Ambos grupos respondieron una encuesta an\'onima tipo Likert (1--5): 10 \'items en el control y 3 adicionales en el experimental sobre la utilidad del sistema. El an\'alisis estad\'istico se realiz\'o \emph{manualmente} en Python: la prueba de \textbf{Shapiro-Wilk} confirm\'o la no normalidad de los datos, por lo que se aplic\'o la prueba no param\'etrica de \textbf{Mann-Whitney U}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.93\linewidth, height=3.9cm,
+    ybar, bar width=10pt,
+    enlarge x limits=0.18,
+    ymin=2, ymax=4,
+    ylabel={\footnotesize Media Likert (1--5)},
+    symbolic x coords={Nivel de ruido, Interrumpe explic., Afecta concentr., Genera estres},
+    xtick=data, x tick label style={font=\scriptsize, align=center},
+    ytick={2,2.5,3,3.5,4}, yticklabel style={font=\scriptsize},
+    legend style={font=\scriptsize, at={(0.5,1.16)}, anchor=south, legend columns=2, draw=none},
+    nodes near coords, nodes near coords style={font=\tiny},
+    every node near coord/.append style={yshift=-1pt},
+    grid=both, grid style={gray!15},
+]
+\addplot[fill=CorpBlue, draw=CorpBlue!70!black] coordinates {(Nivel de ruido,3.33) (Interrumpe explic.,3.33) (Afecta concentr.,3.46) (Genera estres,2.62)};
+\addplot[fill=CorpAccent, draw=CorpAccent!70!black] coordinates {(Nivel de ruido,2.89) (Interrumpe explic.,2.84) (Afecta concentr.,3.11) (Genera estres,2.32)};
+\legend{Grupo control ($n{=}24$), Grupo experimental ($n{=}19$)}
+\end{axis}
+\end{tikzpicture}
+\caption{\footnotesize Comparativa de medias (menor = mejor). Las dos primeras dimensiones presentan diferencia \textbf{estad\'isticamente significativa} (Mann-Whitney U, $p<0{,}05$).}
+\label{fig:comparativa}
+\end{figure}
+
+\begin{KeyFinding}
+\textbf{\faChartBar\ Hallazgos del estudio.} Se detectaron \textbf{dos diferencias significativas} a favor del grupo experimental: \emph{Nivel de ruido percibido} (U=307, \emph{p}=0,030) e \emph{Interrumpe la explicaci\'on} (U=305, \emph{p}=0,033). Adem\'as, el \textbf{89\,\%} del grupo experimental consider\'o que el son\'ometro mejor\'o el clima sonoro, el \textbf{73\,\%} percibi\'o mejor concentraci\'on y el \textbf{42\,\%} apoy\'o extenderlo a otras familias. El resto de dimensiones no mostr\'o diferencias significativas.
+\end{KeyFinding}
+
+\subsection{Limitaciones que motivan la evoluci\'on}
+La interpretaci\'on \emph{IMRyD} de los resultados fue honesta sobre sus l\'imites: muestras peque\~nas (\emph{n}=24/19), intervenci\'on breve y, sobre todo, una medici\'on \textbf{subjetiva} (encuesta de percepci\'on) y \textbf{manual} (4 son\'ometros que solo dan lectura instant\'anea, sin hist\'orico ni dato objetivo agregable). Estas limitaciones ---tama\~no muestral, ausencia de registro continuo y dependencia de la percepci\'on--- son precisamente las que la nueva plataforma t\'ecnica viene a resolver, transformando un \emph{piloto} en una \emph{infraestructura de medici\'on permanente}.
+
+% =============================================================================
+% 2. TRANSICION
+% =============================================================================
+\section{La extensi\'on: de los son\'ometros a la medici\'on continua}
+
+EduSoundMetrics \textbf{no termina con el piloto: se extiende}. La misma iniciativa incorpora una \textbf{fase t\'ecnica} ---implementada en el repositorio \emph{microfonoAula}--- que conserva el objetivo pedag\'ogico original y sustituye los 4 son\'ometros manuales por una red de \textbf{sensores IoT} de medici\'on continua. El salto es \textbf{epistemol\'ogico}: se pasa de \emph{medir lo que el alumnado percibe} (encuesta Likert) a \emph{medir lo que ocurre en el aula} (decibelios reales, en continuo y por aula). La siguiente tabla resume la correspondencia entre ambas fases del mismo proyecto.
+
+\begin{table}[H]
+\centering\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\linewidth}{@{}>{\bfseries\raggedright\arraybackslash}p{2.5cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{TableHead} Dimensi\'on & Fase 1: piloto EduCaixa & Fase 2: extensi\'on IoT (\emph{microfonoAula}) \\
+\midrule
+Instrumento & 4 son\'ometros de pared (\textasciitilde80\,\euro/ud) de lectura visual cerrada & Sensores M5Stack ATOM Echo S3R (malla) y Core2 con DSP (nodo central) \\
+Captura & Lectura puntual, no centralizada, sin agregaci\'on & Continua y centralizada (sensores IoT), muestreo cada 5\,s \\
+Alcance & 2 aulas fijas (1SMRD, 1SMRV) de una sola familia & Multi-aula autom\'atico: cada micro publica en su \emph{topic}; escalable a cualquier familia \\
+An\'alisis & Manual \emph{offline} en Python (Shapiro-Wilk + Mann-Whitney U) & Anal\'itica automatizada tipo \emph{Power BI}: LAeq, L10/L50/L90, percentiles, rankings \\
+Hist\'orico & Inexistente; la evidencia depend\'ia de la encuesta & Retenci\'on \emph{rollup} en escalera: raw 5\,s/14\,d $\rightarrow$ minuto/180\,d $\rightarrow$ hora/$\infty$ \\
+M\'etricas & Percepci\'on subjetiva + umbrales OMS/ISO de referencia & Datos objetivos: LAeq, histograma de 5\,dB, bandas sem\'aforo (35/50/65/75\,dB) \\
+Visualizaci\'on & Tablas y gr\'aficos est\'aticos del an\'alisis manual & Panel web: plano editable, comparador, heatmap d\'ia$\times$hora, perfil de d\'ia tipo \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =============================================================================
+% 3. PLATAFORMA ACTUAL
+% =============================================================================
+\section{La pregunta clave de la fase t\'ecnica: ¿malla de 6 o un nodo central?}
+
+Antes de escalar a todo el centro hab\'ia que responder una pregunta de ingenier\'ia decisiva por su coste e instalaci\'on: \emph{¿una \textbf{malla de 6 micr\'ofonos perimetrales} aporta informaci\'on suficientemente superior a un \textbf{\'unico nodo central} como para justificarse?} Para resolverlo se instrument\'o un aula piloto (DAM ma\~nana / SMR tarde) con ambas configuraciones en paralelo, midiendo en continuo 14 d\'ias sobre una infraestructura ligera (sensores M5Stack $\rightarrow$ servidor $\rightarrow$ panel web).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+\draw[draw=CorpDark, thick, rounded corners=3pt, fill=BgGray] (0,0) rectangle (7,2.5);
+\node[font=\scriptsize\itshape, CorpDark] at (3.5,2.22) {Aula piloto (DAM ma\~nana / SMR tarde)};
+\foreach \x/\y in {0.45/0.42, 3.5/0.42, 6.55/0.42, 0.45/1.62, 3.5/1.62, 6.55/1.62} {
+  \node[circle, fill=CorpBlue, draw=CorpBlue!70!black, inner sep=2.3pt] at (\x,\y) {};
+}
+\node[circle, fill=CorpAccent, draw=CorpAccent!70!black, inner sep=3.4pt] (cen) at (3.5,1.02) {};
+\node[CorpBlue!80!black] at (1.6,1.02) {\textbf{malla 6$\times$} ATOM Echo};
+\node[CorpAccent!85!black] at (5.4,1.02) {\textbf{1$\times$ central} Core2};
+\end{tikzpicture}
+\caption{Disposici\'on del piloto: \textcolor{CorpBlue}{malla de 6 micr\'ofonos perimetrales} frente a \textcolor{CorpAccent}{1 nodo central}. El estudio se decant\'o por el nodo central.}
+\end{figure}
+
+\begin{KeyFinding}
+\textbf{\faChartBar\ Validaci\'on emp\'irica (657.549 lecturas, 14 d\'ias).} El aula es predominantemente silenciosa (\textbf{94,1\,\%} por debajo de 50\,dB(A); solo el 0,002\,\% supera 70\,dB(A)). El turno de ma\~nana (DAM, \textbf{39,3\,dB(A)}) es \textbf{+3,4\,dB(A)} m\'as ruidoso que el de tarde (SMR, \textbf{35,9\,dB(A)}). Validaci\'on bipolar coherente con la literatura: \textbf{$\approx$21\,dB(A)} de suelo nocturno y picos de \textbf{84,6\,dB(A)} bajo est\'imulo controlado.
+\end{KeyFinding}
+
+\textbf{Resultado: gana el nodo central.} El nodo central mostr\'o un sesgo posicional de \textbf{+10,9\,dB(A)} sin calibrar respecto a la mediana de los distribuidos; corregido en el servidor ($-7$\,dB) qued\'o en \textbf{+3,9\,dB(A)} residuales, absorbidos por la \textbf{mediana espacial} sobre los 7 micr\'ofonos. La malla de 6 a\~nade granularidad espacial, pero \emph{un \'unico nodo central (M5Stack Core2) ya entrega la mayor parte de la informaci\'on \'util}.
+
+\begin{HighlightBox}
+\textbf{\faBullseye\ Recomendaci\'on de despliegue (y objetivos EduCaixa).} Para una implantaci\'on institucional masiva, \textbf{un \'unico nodo central por aula ofrece la mejor relaci\'on coste/valor anal\'itico}; la malla de 6 se reserva para investigaci\'on o aulas de geometr\'ia compleja. Esa decisi\'on cumple y abarata los objetivos: \textbf{OBJ1} (dB objetivos v\'ia LAeq y L10/L50/L90, alineados con OMS\,2018/ISO\,9241-6), \textbf{OBJ2} (eventos y percentiles que respaldan la percepci\'on antes solo encuestada) y \textbf{OBJ3} (despliegue replicable y barato a nuevas familias, con inclusi\'on\,/\,DUA y bienestar docente).
+\end{HighlightBox}
+
+% =============================================================================
+% 4. PROPUESTA PC IA
+% =============================================================================
+\section{Propuesta: un PC para IA local en el centro}
+
+La extensi\'on genera ahora \textbf{series temporales ac\'usticas continuas}, etiquetadas por aula/franja/curso y conservadas a largo plazo. Ese \emph{dataset} habilita el salto a la \textbf{IA}, y procesarlo \emph{en el centro} ---sin subir audio a la nube--- es la opci\'on correcta de \textbf{privacidad y RGPD} al tratarse de menores. Casos de uso: predicci\'on de ruido por franja, detecci\'on de \textbf{anomal\'ias} y eventos, \textbf{clasificaci\'on de audio} (AST/PANNs/BEATs: voz, silencio, trabajo en grupo), \textbf{informes} autom\'aticos con LLM local, correlaci\'on ruido$\leftrightarrow$rendimiento (cierra el bucle del estudio) y recomendaciones de inclusi\'on (DUA)\,/\,bienestar docente. Se propone, pues, un PC potente (\textbf{5.000--7.000\,\euro}) como nodo de c\'omputo local; se evaluaron tres arquetipos (precios verificados, Espa\~na 2026):
+
+\begin{table}[H]
+\centering\footnotesize
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.7cm} >{\raggedright\arraybackslash}p{3.1cm} >{\raggedright\arraybackslash}X >{\bfseries\raggedright\arraybackslash}p{1.5cm}@{}}
+\toprule
+\rowcolor{TableHead} Propuesta & GPU / VRAM & Mejor para & Precio \\
+\midrule
+\rowcolor{CorpAccent!12} \textbf{Forge 5090} \faStar\ \emph{(recom.)} & RTX 5090, \textbf{32\,GB} GDDR7 & Inferencia LLM 7B--70B(Q4) y audio; mejor precio/rendimiento; CUDA maduro & \textasciitilde5.950\,\euro \\
+LLM-Vault 48 & RTX PRO 5000 Blackwell, \textbf{48\,GB} ECC & M\'axima VRAM/ECC; \emph{fine-tuning} serio; datos RGPD; escalable a 96\,GB & \textasciitilde6.890\,\euro \\
+Dual 5070 Ti & 2$\times$RTX 5070 Ti, \textbf{32\,GB} agreg. & \emph{Throughput} multi-GPU; reparable pieza a pieza (sin NVLink) & \textasciitilde6.270\,\euro \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Recomendaci\'on --- \emph{Forge 5090 AI Workstation} (\textasciitilde5.950\,\euro).} La carga real de IA del proyecto es \emph{inferencia}, no preentrenamiento: una \'unica RTX 5090 (32\,GB GDDR7, \textasciitilde1,8\,TB/s) sirve LLMs de 7B--32B en FP16 y 70B cuantizados (Q4/Q5) a \textasciitilde40--45\,tok/s ---sobrado para informes locales y para \emph{fine-tuning} ligero (LoRA) de los clasificadores de audio. Su ecosistema CUDA (PyTorch, vLLM, Ollama, TensorRT-LLM) es el m\'as maduro y \textbf{el m\'as f\'acil de mantener}, evita la complejidad del multi-GPU sin NVLink del \emph{Dual} y deja m\'as margen que el \emph{LLM-Vault} (al borde de 7\,k), que queda como alternativa si se prioriza el \emph{fine-tuning} de modelos grandes.
+
+\begin{table}[H]
+\centering\small
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}>{\bfseries}p{3.0cm} X >{\raggedleft\arraybackslash}p{1.6cm}@{}}
+\toprule
+\rowcolor{TableHead} Componente & Modelo & Precio \\
+\midrule
+GPU & NVIDIA GeForce RTX 5090 32\,GB GDDR7 (AIB) & \textasciitilde3.300\,\euro \\
+CPU & AMD Ryzen 9 9950X (16C/32T, AM5) & 600\,\euro \\
+Placa base & Gigabyte X870E AORUS Master (PCIe 5.0, WiFi 7) & 430\,\euro \\
+RAM & 128\,GB (4$\times$32) DDR5-5600 & 520\,\euro \\
+Almacenamiento & 4\,TB NVMe PCIe 4.0 + 2\,TB PCIe 5.0 & 520\,\euro \\
+Fuente & Seasonic 1200W 80+ Platinum (ATX 3.1) & 250\,\euro \\
+Refrig.\ y caja & AIO 360\,mm + caja de alto flujo & 260\,\euro \\
+S.\ operativo & Ubuntu 24.04 LTS / Windows 11 Pro & \textasciitilde20\,\euro \\
+\midrule
+\rowcolor{CorpAccent!12} \multicolumn{2}{@{}l}{\textbf{Total estimado (IVA y montaje incl.)}} & \textbf{\textasciitilde5.950\,\euro} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =============================================================================
+% 5. CONCLUSION
+% =============================================================================
+\section{Conclusi\'on y pr\'oximos pasos}
+
+EduSoundMetrics ha \textbf{extendido} una intuici\'on did\'actica validada con encuestas hacia una \textbf{infraestructura de medici\'on objetiva y permanente}, y por el camino ha resuelto su primera pregunta de ingenier\'ia: \textbf{un \'unico nodo central basta} para escalar con buena relaci\'on coste/valor. Lo que antes se infer\'ia de la percepci\'on del alumnado hoy es \textbf{dato medible, hist\'orico y escalable}. El paso natural ---un \textbf{PC de IA local} en el centro--- cierra el ciclo, transformando ese volumen creciente de datos ac\'usticos en \textbf{modelos predictivos y recomendaciones} para el aprendizaje, la inclusi\'on y el bienestar docente, siempre con la privacidad del alumnado garantizada.
+
+\begin{HighlightBox}
+\textbf{\faRoad\ Hoja de ruta.} \textbf{(1)} Desplegar un \textbf{nodo central por aula} y extenderlo a nuevas familias profesionales. \textbf{(2)} Acumular un hist\'orico anual etiquetado (aula, franja, curso). \textbf{(3)} Adquirir el nodo de IA local (\emph{Forge 5090}). \textbf{(4)} Entrenar los primeros modelos de detecci\'on de eventos y predicci\'on de ruido. \textbf{(5)} Reintegrar las conclusiones al aula, retomando ---ahora con dato objetivo--- la dimensi\'on metacognitiva de la propuesta EduCaixa original.
+\end{HighlightBox}
+
+\end{document}
